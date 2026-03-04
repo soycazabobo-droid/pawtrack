@@ -787,16 +787,22 @@ async function saveDog(){
   if(!name) return alert('Escribe el nombre del perro 🐕');
   const btn=document.querySelector('#m-dog .btn-save');
   btn.textContent='Guardando...'; btn.disabled=true;
-  const {error}=await sb.from('dogs').insert({owner_id:CU.id,name,breed:breed||null,age,photo_url:photo||null,avatar:dogAv});
-  btn.textContent='Guardar 💾'; btn.disabled=false;
-  if(error){alert('Error al guardar: '+error.message);return;}
-  // limpiar form
-  $('d-name').value=''; $('d-breed').value=''; $('d-age').value=''; $('d-photo').value='';
-  dogAv='🐕';
-  document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
-  document.querySelector('#av-dog .av-opt[data-e="🐕"]').classList.add('sel');
-  cm('m-dog');
-  go('home');
+  try {
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Tiempo de espera agotado, intentá de nuevo')),8000));
+    const insert=sb.from('dogs').insert({owner_id:CU.id,name,breed:breed||null,age,photo_url:photo||null,avatar:dogAv});
+    const {error}=await Promise.race([insert,timeout]);
+    if(error) throw new Error(error.message);
+    $('d-name').value=''; $('d-breed').value=''; $('d-age').value=''; $('d-photo').value='';
+    dogAv='🐕';
+    document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
+    document.querySelector('#av-dog .av-opt[data-e="🐕"]').classList.add('sel');
+    cm('m-dog');
+    go('home');
+  } catch(e) {
+    alert('❌ '+e.message);
+  } finally {
+    btn.textContent='Guardar 💾'; btn.disabled=false;
+  }
 }
 
 function openDogModal(){
