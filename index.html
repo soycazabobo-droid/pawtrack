@@ -716,14 +716,12 @@ function initMap(lat=-34.603,lng=-58.381){
 }
 function dogIcon(){
   const av=dogs[0]?.avatar||'🐕';
-  return L.divIcon({
-    html:`<div style="position:relative;display:flex;align-items:center;justify-content:center">
-      <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(255,107,53,.25);animation:pulse 1.5s infinite;"></div>
-      <div style="position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,107,53,.4);"></div>
-      <div style="position:relative;font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));z-index:1">${av}</div>
-    </div>`,
-    iconSize:[44,44],iconAnchor:[22,22],className:''
-  });
+  const html='<div style="position:relative;display:flex;align-items:center;justify-content:center">'+
+    '<div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(255,107,53,.25);animation:pulse 1.5s infinite;"></div>'+
+    '<div style="position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,107,53,.4);"></div>'+
+    '<div style="position:relative;font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));z-index:1">'+av+'</div>'+
+    '</div>';
+  return L.divIcon({html:html,iconSize:[44,44],iconAnchor:[22,22],className:''});
 }
 
 function resumeWalk(){
