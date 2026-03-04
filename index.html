@@ -809,11 +809,7 @@ function openDogModal(){
 }
 
 // avatar picker dog
-$('av-dog').addEventListener('click',e=>{
-  const o=e.target.closest('.av-opt'); if(!o) return;
-  document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
-  o.classList.add('sel'); dogAv=o.dataset.e;
-});
+// av-dog listener se inicializa dentro de DOMContentLoaded
 
 // ==========================================
 //   PROFILE PAGE
@@ -897,6 +893,13 @@ async function submitRating(){
 //   BOOTSTRAP
 // ==========================================
 window.addEventListener('DOMContentLoaded',async()=>{
+  // Avatar picker del perro
+  const avDog=$('av-dog');
+  if(avDog) avDog.addEventListener('click',e=>{
+    const o=e.target.closest('.av-opt'); if(!o) return;
+    document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
+    o.classList.add('sel'); dogAv=o.dataset.e;
+  });
   const watchParam=new URLSearchParams(location.search).get('watch');
 
   sb.auth.onAuthStateChange(async(event,session)=>{
