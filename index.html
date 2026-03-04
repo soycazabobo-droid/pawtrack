@@ -8,72 +8,68 @@
 <meta http-equiv="Expires" content="0"/>
 <title>PawTrack 🐾</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=2"/>
-<script src="https://unpkg.com/@supabase/supabase-js@2?v=2"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{--orange:#FF6B35;--orange-light:#FF8C5A;--yellow:#FFD23F;--green:#4CAF7D;--green-dark:#3a9165;--red:#FF4757;--blue:#3b82f6;--bg:#FFF8F0;--text:#2D2D2D;--soft:#888;--shadow:0 4px 20px rgba(0,0,0,.08);--r:20px;--hh:64px;--nh:70px;}
+:root{
+  --or:#FF6B35;--orl:#FF8C5A;--yw:#FFD23F;
+  --gr:#4CAF7D;--grd:#3a9165;--re:#FF4757;
+  --bl:#3b82f6;--bg:#FFF8F0;--tx:#2D2D2D;
+  --soft:#888;--sh:0 4px 20px rgba(0,0,0,.08);--r:20px;
+  --hh:64px;--nh:70px;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;}
 .hidden{display:none!important;}
-img.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-
-/* SPLASH */
-#splash{position:fixed;inset:0;background:linear-gradient(135deg,#FF6B35,#FFD23F);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s,transform .6s;}
-#splash.out{opacity:0;transform:scale(1.05);pointer-events:none;}
-.splash-inner{text-align:center;color:#fff;}
-.paw-logo{font-size:72px;animation:bonce 1s infinite alternate;display:block;}
-@keyframes bonce{from{transform:translateY(0)}to{transform:translateY(-14px)}}
-.splash-inner h1{font-family:'Fredoka One',cursive;font-size:48px;letter-spacing:2px;margin:8px 0 4px;}
-.splash-inner p{font-size:16px;opacity:.9;font-weight:600;}
-.dots{margin-top:24px;display:flex;gap:8px;justify-content:center;}
+#splash{position:fixed;inset:0;background:linear-gradient(135deg,#FF6B35,#FFD23F);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s;}
+#splash.out{opacity:0;pointer-events:none;}
+.sp-inner{text-align:center;color:#fff;}
+.sp-paw{font-size:72px;animation:bounce 1s infinite alternate;display:block;}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+.sp-inner h1{font-family:'Fredoka One',cursive;font-size:48px;margin:8px 0 4px;}
+.sp-inner p{font-size:16px;opacity:.9;font-weight:600;}
+.dots{margin-top:20px;display:flex;gap:8px;justify-content:center;}
 .dots span{width:10px;height:10px;background:#fff;border-radius:50%;animation:dp 1s infinite;}
 .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
 @keyframes dp{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-
-/* AUTH */
 #auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#FFF8F0,#FFE8D6);}
-.auth-logo{font-size:56px;}.auth-title{font-family:'Fredoka One',cursive;font-size:36px;color:var(--orange);margin:4px 0;}
+.auth-logo{font-size:56px;}
+.auth-title{font-family:'Fredoka One',cursive;font-size:36px;color:var(--or);margin:4px 0;}
 .auth-sub{color:var(--soft);font-weight:600;margin-bottom:28px;font-size:15px;}
 .auth-box{background:#fff;border-radius:28px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(255,107,53,.15);}
 .tabs{display:flex;gap:6px;margin-bottom:22px;background:var(--bg);border-radius:14px;padding:4px;}
 .tab{flex:1;padding:10px;border:none;border-radius:10px;background:none;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--soft);transition:all .2s;}
-.tab.active{background:#fff;color:var(--orange);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.tab.active{background:#fff;color:var(--or);box-shadow:0 2px 8px rgba(0,0,0,.08);}
 .fg{margin-bottom:14px;}
 .fg label{display:block;font-weight:800;font-size:11px;margin-bottom:5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;}
-.fg input,.fg textarea,.fg select{width:100%;padding:11px 14px;border:2px solid #eee;border-radius:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:600;outline:none;transition:border .2s;background:#fff;color:var(--text);}
-.fg input:focus,.fg textarea:focus{border-color:var(--orange);}
+.fg input,.fg textarea,.fg select{width:100%;padding:11px 14px;border:2px solid #eee;border-radius:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:600;outline:none;transition:border .2s;background:#fff;color:var(--tx);}
+.fg input:focus{border-color:var(--or);}
 .fg textarea{resize:none;height:72px;}
 .role-pick{display:flex;gap:10px;}
 .rc{flex:1;padding:14px 8px;border:2px solid #eee;border-radius:16px;text-align:center;cursor:pointer;transition:all .2s;background:#fff;}
-.rc.sel{border-color:var(--orange);background:#FFF3EE;}
+.rc.sel{border-color:var(--or);background:#FFF3EE;}
 .rc .ri{font-size:26px;display:block;margin-bottom:5px;}
 .rc .rn{font-weight:800;font-size:13px;}
 .rc .rd{font-size:11px;color:var(--soft);margin-top:2px;}
-.btn-auth{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:15px;padding:14px;font-size:17px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(255,107,53,.4);transition:transform .15s;}
-.btn-auth:hover{transform:translateY(-2px);}
-.btn-google{width:100%;background:#fff;color:var(--text);border:2px solid #eee;border-radius:15px;padding:11px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;transition:border .2s;}
-.btn-google:hover{border-color:var(--orange);}
+.btn-auth{width:100%;background:linear-gradient(135deg,var(--or),var(--orl));color:#fff;border:none;border-radius:15px;padding:14px;font-size:17px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(255,107,53,.4);transition:transform .15s;}
+.btn-google{width:100%;background:#fff;color:var(--tx);border:2px solid #eee;border-radius:15px;padding:11px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;transition:border .2s;}
 .divider{text-align:center;color:var(--soft);font-size:13px;font-weight:600;margin:12px 0;position:relative;}
 .divider::before,.divider::after{content:'';position:absolute;top:50%;width:38%;height:1px;background:#eee;}
 .divider::before{left:0}.divider::after{right:0}
-.err{background:#FFF0F0;color:var(--red);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;display:none;}
-
-/* APP */
+.err{background:#FFF0F0;color:var(--re);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;display:none;}
 #app{display:flex;flex-direction:column;min-height:100vh;}
 header{position:sticky;top:0;z-index:100;height:var(--hh);background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 2px 12px rgba(255,107,53,.1);}
 .h-left{display:flex;align-items:center;gap:8px;}
-.logo-t{font-family:'Fredoka One',cursive;font-size:24px;color:var(--orange);}
+.logo-t{font-family:'Fredoka One',cursive;font-size:24px;color:var(--or);}
 .h-right{display:flex;gap:8px;align-items:center;}
-.rbadge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;}
-.ibtn{background:var(--bg);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;transition:transform .2s;}
-.ibtn:hover{transform:scale(1.1);background:#ffe8dc;}
+.rbadge{background:linear-gradient(135deg,var(--or),var(--yw));color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;}
+.ibtn{background:var(--bg);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;}
 main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:column;gap:14px;}
-
-/* CARDS */
 .hero-card{background:linear-gradient(135deg,#FF6B35,#FFD23F);border-radius:var(--r);padding:18px;display:flex;align-items:center;gap:14px;color:#fff;box-shadow:0 6px 24px rgba(255,107,53,.35);position:relative;overflow:hidden;}
 .hero-card::after{content:'🐾';position:absolute;right:-8px;bottom:-14px;font-size:76px;opacity:.15;}
-.hc-avatar{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;overflow:hidden;}
+.hc-av{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;overflow:hidden;}
+.hc-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .hc-info{flex:1;}
 .hc-info h2{font-size:19px;font-weight:800;}
 .hc-info p{font-size:13px;opacity:.85;margin-top:2px;}
@@ -81,108 +77,83 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 .dot{width:8px;height:8px;border-radius:50%;}
 .dot.idle{background:#fff;}.dot.on{background:#7fff7f;animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* MAP */
-.map-wrap{border-radius:var(--r);overflow:hidden;height:300px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.22);border:2px solid rgba(255,107,53,.18);}
+.map-wrap{border-radius:var(--r);overflow:hidden;height:300px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.2);border:2px solid rgba(255,107,53,.15);}
 #map{height:100%;width:100%;}
-.map-hud{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(15,15,20,.82);backdrop-filter:blur(10px);border-radius:40px;padding:9px 22px;display:flex;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1);}
+.map-hud{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(15,15,20,.85);backdrop-filter:blur(10px);border-radius:40px;padding:9px 22px;display:flex;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);}
 .hud-s{display:flex;align-items:center;gap:6px;font-weight:800;font-size:15px;color:#fff;}
-.hud-s .hud-val{color:#FF6B35;font-size:16px;font-weight:900;}
-.map-status-badge{position:absolute;top:12px;left:12px;z-index:999;background:rgba(15,15,20,.82);backdrop-filter:blur(8px);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.1);}
+.hud-val{color:#FF6B35;font-size:16px;font-weight:900;}
+.map-live{position:absolute;top:12px;left:12px;z-index:999;background:rgba(15,15,20,.85);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;}
 .live-dot{width:8px;height:8px;border-radius:50%;background:#4CAF7D;animation:pulse 1s infinite;}
-
-/* CONTROLS */
 .ctrls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
-.btn-m{border:none;border-radius:50px;padding:13px 26px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s;}
+.btn-m{border:none;border-radius:50px;padding:13px 26px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .15s;}
 .btn-m:active{transform:scale(.96);}
-.go{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;box-shadow:0 5px 18px rgba(76,175,125,.45);}
-.stop{background:linear-gradient(135deg,var(--red),#c0392b);color:#fff;box-shadow:0 5px 18px rgba(255,71,87,.4);}
-.share-btn{background:linear-gradient(135deg,var(--blue),#1d4ed8);color:#fff;font-size:14px;padding:11px 16px;}
-
-/* PANEL */
-.panel{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--shadow);}
+.go-btn{background:linear-gradient(135deg,var(--gr),var(--grd));color:#fff;box-shadow:0 5px 18px rgba(76,175,125,.45);}
+.stop-btn{background:linear-gradient(135deg,var(--re),#c0392b);color:#fff;}
+.share-btn{background:linear-gradient(135deg,var(--bl),#1d4ed8);color:#fff;font-size:14px;padding:11px 16px;}
+.panel{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);}
 .panel h3{font-size:15px;font-weight:800;margin-bottom:13px;}
 .empty{text-align:center;padding:22px;color:var(--soft);}
 .empty span{font-size:34px;display:block;margin-bottom:8px;}
 .empty p{font-size:14px;font-weight:600;}
-
-/* LIST ITEMS */
-.li{background:var(--bg);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:9px;animation:slin .3s ease;}
-@keyframes slin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.li{background:var(--bg);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
 .li-av{width:48px;height:48px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:2px solid #eee;}
 .li-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .li-info{flex:1;min-width:0;}
-.li-info strong{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.li-info span{font-size:12px;color:var(--soft);}
-.li-badge{background:#fff;border-radius:11px;padding:5px 11px;font-size:12px;font-weight:800;color:var(--orange);white-space:nowrap;}
-
-/* WALKER CARD */
-.walker-card{background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid transparent;transition:border .2s,box-shadow .2s;}
-.walker-card:hover{border-color:var(--orange);box-shadow:0 6px 24px rgba(255,107,53,.2);}
-.wc-photo{width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg);}
+.li-info strong{display:block;font-size:14px;font-weight:800;}
+.li-info span{display:block;font-size:12px;color:var(--soft);}
+.wcard{background:#fff;border-radius:18px;padding:16px;box-shadow:var(--sh);margin-bottom:12px;display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid transparent;transition:border .2s;}
+.wcard:hover{border-color:var(--or);}
+.wc-photo{width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid var(--or);display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg);}
 .wc-photo img{width:100%;height:100%;object-fit:cover;}
 .wc-info{flex:1;}
 .wc-info h4{font-size:16px;font-weight:800;margin-bottom:2px;}
-.wc-info p{font-size:12px;color:var(--soft);margin-bottom:6px;}
-.wc-stars{color:#FFD23F;font-size:14px;}
-.wc-desc{font-size:12px;color:var(--soft);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.btn-req{background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
-.btn-accept{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+.wc-info p{font-size:12px;color:var(--soft);margin-bottom:4px;}
+.btn-req{background:linear-gradient(135deg,var(--or),var(--orl));color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
+.btn-accept{background:linear-gradient(135deg,var(--gr),var(--grd));color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
 .btn-reject{background:#eee;color:var(--soft);border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
-.btn-watch{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
-.btn-add{width:100%;background:var(--bg);border:2px dashed #FFB89A;border-radius:15px;padding:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--orange);cursor:pointer;transition:background .2s;margin-top:4px;}
-.btn-add:hover{background:#FFE8D6;}
-.status-pill{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;}
+.btn-watch{background:var(--bl);color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-add{width:100%;background:var(--bg);border:2px dashed #FFB89A;border-radius:15px;padding:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--or);cursor:pointer;margin-top:4px;}
+.sp-pill{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;}
 .sp-pending{background:#FFF3CD;color:#856404;}
 .sp-accepted{background:#D4EDDA;color:#155724;}
 .sp-rejected{background:#F8D7DA;color:#721C24;}
 .sp-completed{background:#D1ECF1;color:#0C5460;}
-
-/* NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:#fff;display:flex;box-shadow:0 -4px 20px rgba(0,0,0,.07);z-index:100;}
 .nbtn{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:21px;cursor:pointer;color:var(--soft);font-family:'Nunito',sans-serif;transition:color .2s,transform .2s;}
 .nbtn span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-.nbtn.active{color:var(--orange);transform:translateY(-2px);}
-
-/* MODALS */
+.nbtn.active{color:var(--or);transform:translateY(-2px);}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:flex-end;justify-content:center;animation:fi .2s;}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 .mbox{background:#fff;border-radius:28px 28px 0 0;padding:26px 22px 38px;width:100%;max-width:480px;animation:su .3s cubic-bezier(.17,.67,.4,1.2);position:relative;max-height:90vh;overflow-y:auto;}
 @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.mbox h2{font-family:'Fredoka One',cursive;font-size:21px;color:var(--orange);margin-bottom:18px;text-align:center;}
+.mbox h2{font-family:'Fredoka One',cursive;font-size:21px;color:var(--or);margin-bottom:18px;text-align:center;}
 .mclose{position:absolute;top:14px;right:18px;background:var(--bg);border:none;border-radius:50%;width:34px;height:34px;font-size:15px;cursor:pointer;font-weight:800;color:var(--soft);}
 .av-pick{display:flex;gap:8px;flex-wrap:wrap;}
 .av-opt{font-size:28px;padding:7px;border-radius:13px;cursor:pointer;background:var(--bg);transition:transform .15s;border:2px solid transparent;}
-.av-opt.sel{border-color:var(--orange);background:#ffe8dc;transform:scale(1.15);}
-.btn-save{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:15px;padding:13px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:18px;box-shadow:0 4px 16px rgba(255,107,53,.4);}
-
-/* SUMMARY */
+.av-opt.sel{border-color:var(--or);background:#ffe8dc;transform:scale(1.15);}
+.btn-save{width:100%;background:linear-gradient(135deg,var(--or),var(--orl));color:#fff;border:none;border-radius:15px;padding:13px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:18px;box-shadow:0 4px 16px rgba(255,107,53,.4);}
 .sum-stats{display:flex;gap:10px;justify-content:center;margin:18px 0;}
 .ss{flex:1;background:var(--bg);border-radius:15px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .ss span{font-size:19px;font-weight:800;}
 .ss label{font-size:10px;color:var(--soft);font-weight:700;text-transform:uppercase;}
 .share-box{background:var(--bg);border-radius:13px;padding:13px;margin:10px 0;word-break:break-all;font-size:12px;font-weight:700;border:2px solid #FFB89A;}
-.btn-copy{background:var(--orange);color:#fff;border:none;border-radius:12px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;width:100%;margin-top:6px;}
+.btn-copy{background:var(--or);color:#fff;border:none;border-radius:12px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;width:100%;margin-top:6px;}
 .spinner{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.section-title{font-size:16px;font-weight:800;margin-bottom:10px;}
-.photo-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--orange);margin:0 auto 10px;display:block;}
+.star-btn{font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1);display:inline-block;}
 </style>
 </head>
 <body>
 
-<!-- PawTrack v3 build:20260304222342 -->
-<!-- SPLASH -->
 <div id="splash">
-  <div class="splash-inner">
-    <div class="paw-logo">🐾</div>
+  <div class="sp-inner">
+    <span class="sp-paw">🐾</span>
     <h1>PawTrack</h1>
     <p>Conecta dueños y paseadores</p>
     <div class="dots"><span></span><span></span><span></span></div>
   </div>
 </div>
 
-<!-- AUTH -->
 <div id="auth" class="hidden">
   <div class="auth-logo">🐾</div>
   <h1 class="auth-title">PawTrack</h1>
@@ -193,46 +164,35 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
       <button class="tab" id="tab-up" onclick="switchTab('up')">Registrarse</button>
     </div>
     <div id="auth-err" class="err"></div>
-
-    <!-- LOGIN -->
     <div id="f-in">
       <div class="fg"><label>Email</label><input type="email" id="li-email" placeholder="tu@email.com"/></div>
       <div class="fg"><label>Contraseña</label><input type="password" id="li-pass" placeholder="••••••••"/></div>
       <button class="btn-auth" id="btn-li" onclick="doLogin()">Entrar 🐾</button>
       <div class="divider">o</div>
-      <button class="btn-google" onclick="doGoogle()">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
-        Continuar con Google
-      </button>
+      <button class="btn-google" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>Continuar con Google</button>
     </div>
-
-    <!-- REGISTER -->
     <div id="f-up" class="hidden">
-      <div class="fg"><label>¿Eres dueño o paseador?</label>
+      <div class="fg"><label>Soy...</label>
         <div class="role-pick">
-          <div class="rc sel" id="rc-owner" onclick="selRole('owner')"><span class="ri">🏠</span><div class="rn">Dueño</div><div class="rd">Busco paseadores</div></div>
-          <div class="rc" id="rc-walker" onclick="selRole('walker')"><span class="ri">🦮</span><div class="rn">Paseador</div><div class="rd">Ofrezco paseos</div></div>
+          <div class="rc sel" id="rc-owner" onclick="selRoleFn('owner')"><span class="ri">🏠</span><div class="rn">Dueño</div><div class="rd">Busco paseadores</div></div>
+          <div class="rc" id="rc-walker" onclick="selRoleFn('walker')"><span class="ri">🦮</span><div class="rn">Paseador</div><div class="rd">Ofrezco paseos</div></div>
         </div>
       </div>
       <div class="fg"><label>Nombre completo</label><input type="text" id="ru-name" placeholder="Ej: María García"/></div>
       <div class="fg"><label>Email</label><input type="email" id="ru-email" placeholder="tu@email.com"/></div>
       <div class="fg"><label>Contraseña</label><input type="password" id="ru-pass" placeholder="Mínimo 6 caracteres"/></div>
-      <div class="fg"><label>URL de tu foto de perfil</label><input type="url" id="ru-photo" placeholder="https://i.imgur.com/tu-foto.jpg"/></div>
+      <div class="fg"><label>URL foto de perfil (opcional)</label><input type="url" id="ru-photo" placeholder="https://i.imgur.com/foto.jpg"/></div>
       <div id="ru-walker-fields" class="hidden">
-        <div class="fg"><label>Descripción (¿por qué eres buen paseador?)</label><textarea id="ru-desc" placeholder="Ej: Amo los perros, tengo 3 años de experiencia..."></textarea></div>
-        <div class="fg"><label>Teléfono / WhatsApp</label><input type="text" id="ru-phone" placeholder="+51 999 999 999"/></div>
+        <div class="fg"><label>Descripción</label><textarea id="ru-desc" placeholder="Ej: Amo los perros, 3 años de experiencia..."></textarea></div>
+        <div class="fg"><label>Teléfono / WhatsApp</label><input type="text" id="ru-phone" placeholder="+54 11 1234 5678"/></div>
       </div>
       <button class="btn-auth" id="btn-up" onclick="doRegister()">Crear cuenta 🐾</button>
       <div class="divider">o</div>
-      <button class="btn-google" onclick="doGoogle()">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
-        Continuar con Google
-      </button>
+      <button class="btn-google" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>Continuar con Google</button>
     </div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
   <header>
     <div class="h-left"><span style="font-size:26px">🐾</span><span class="logo-t">PawTrack</span></div>
@@ -250,695 +210,669 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
   </nav>
 </div>
 
-<!-- MODAL AGREGAR PERRO -->
 <div id="m-dog" class="modal hidden">
   <div class="mbox">
-    <button class="mclose" onclick="cm('m-dog')">✕</button>
+    <button class="mclose" onclick="closeModal('m-dog')">✕</button>
     <h2>🐶 Mi Perro</h2>
-    <div class="fg"><label>Nombre</label><input type="text" id="d-name" placeholder="Ej: Luna, Max..."/></div>
+    <div class="fg"><label>Nombre *</label><input type="text" id="d-name" placeholder="Ej: Luna, Max..."/></div>
     <div class="fg"><label>Raza</label><input type="text" id="d-breed" placeholder="Ej: Labrador, Mestizo..."/></div>
     <div class="fg"><label>Edad (años)</label><input type="number" id="d-age" placeholder="3" min="0" max="20"/></div>
-    <div class="fg"><label>URL de foto del perro</label><input type="url" id="d-photo" placeholder="https://i.imgur.com/foto-perro.jpg"/></div>
-    <div class="fg"><label>Avatar (si no tienes foto)</label>
+    <div class="fg"><label>URL foto (opcional)</label><input type="url" id="d-photo" placeholder="https://i.imgur.com/foto.jpg"/></div>
+    <div class="fg"><label>Avatar</label>
       <div class="av-pick" id="av-dog">
-        <span class="av-opt sel" data-e="🐕">🐕</span><span class="av-opt" data-e="🐩">🐩</span>
-        <span class="av-opt" data-e="🦮">🦮</span><span class="av-opt" data-e="🐶">🐶</span>
-        <span class="av-opt" data-e="🐾">🐾</span><span class="av-opt" data-e="🦴">🦴</span>
+        <span class="av-opt sel" data-e="🐕">🐕</span>
+        <span class="av-opt" data-e="🐩">🐩</span>
+        <span class="av-opt" data-e="🦮">🦮</span>
+        <span class="av-opt" data-e="🐶">🐶</span>
+        <span class="av-opt" data-e="🐾">🐾</span>
+        <span class="av-opt" data-e="🦴">🦴</span>
       </div>
     </div>
-    <button class="btn-save" onclick="saveDog()">Guardar 💾</button>
+    <button class="btn-save" id="btn-save-dog" onclick="saveDog()">Guardar 💾</button>
   </div>
 </div>
 
-<!-- MODAL SOLICITAR PASEADOR -->
 <div id="m-req" class="modal hidden">
   <div class="mbox">
-    <button class="mclose" onclick="cm('m-req')">✕</button>
+    <button class="mclose" onclick="closeModal('m-req')">✕</button>
     <h2>🦮 Solicitar Paseador</h2>
-    <div id="req-walker-info" style="text-align:center;margin-bottom:16px"></div>
-    <div class="fg"><label>¿Qué perro va a pasear?</label>
-      <select id="req-dog"></select>
-    </div>
-    <div class="fg"><label>Fecha y hora del paseo</label><input type="datetime-local" id="req-date"/></div>
+    <div id="req-walker-info" style="margin-bottom:16px"></div>
+    <div class="fg"><label>¿Qué perro?</label><select id="req-dog"></select></div>
+    <div class="fg"><label>Fecha y hora</label><input type="datetime-local" id="req-date"/></div>
     <button class="btn-save" onclick="sendRequest()">Enviar solicitud 🐾</button>
   </div>
 </div>
 
-<!-- MODAL RESUMEN -->
 <div id="m-sum" class="modal hidden">
   <div class="mbox" style="text-align:center">
-    <h2>🎉 ¡Paseo completado!</h2>
+    <h2>🎉 Paseo completado!</h2>
     <div class="sum-stats">
       <div class="ss"><span id="s-dist">0 km</span><label>Distancia</label></div>
       <div class="ss"><span id="s-time">00:00</span><label>Duración</label></div>
       <div class="ss"><span id="s-pts">0</span><label>Puntos GPS</label></div>
     </div>
-    <button class="btn-save" onclick="cm('m-sum')">¡Genial! 🐾</button>
-  </div>
-</div>
-
-<!-- MODAL COMPARTIR -->
-
-<!-- MODAL CALIFICAR PASEADOR -->
-<div id="m-rating" class="modal hidden">
-  <div class="mbox" style="text-align:center">
-    <button class="mclose" onclick="cm('m-rating')">✕</button>
-    <h2>⭐ Calificar Paseador</h2>
-    <div id="rating-walker-info" style="margin-bottom:18px"></div>
-    <p style="font-weight:700;color:var(--soft);font-size:14px;margin-bottom:12px">¿Cómo fue el paseo?</p>
-    <div id="star-picker" style="display:flex;justify-content:center;gap:10px;margin-bottom:18px">
-      <span class="star-btn" data-v="1" onclick="pickStar(1)" style="font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1)">⭐</span>
-      <span class="star-btn" data-v="2" onclick="pickStar(2)" style="font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1)">⭐</span>
-      <span class="star-btn" data-v="3" onclick="pickStar(3)" style="font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1)">⭐</span>
-      <span class="star-btn" data-v="4" onclick="pickStar(4)" style="font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1)">⭐</span>
-      <span class="star-btn" data-v="5" onclick="pickStar(5)" style="font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1)">⭐</span>
-    </div>
-    <div id="star-label" style="font-size:15px;font-weight:800;color:var(--orange);min-height:22px;margin-bottom:14px"></div>
-    <div class="fg"><label>Comentario (opcional)</label><textarea id="rating-comment" placeholder="Ej: Excelente paseador, muy puntual y cariñoso con los perros..." style="height:80px"></textarea></div>
-    <button class="btn-save" onclick="submitRating()">Enviar calificación ⭐</button>
+    <button class="btn-save" onclick="closeModal('m-sum')">Genial! 🐾</button>
   </div>
 </div>
 
 <div id="m-share" class="modal hidden">
   <div class="mbox">
-    <button class="mclose" onclick="cm('m-share')">✕</button>
+    <button class="mclose" onclick="closeModal('m-share')">✕</button>
     <h2>📡 Paseo en vivo</h2>
-    <p style="text-align:center;color:var(--soft);font-size:14px;margin-bottom:10px">Comparte este link con el dueño</p>
+    <p style="text-align:center;color:var(--soft);font-size:14px;margin-bottom:10px">Compartí este link</p>
     <div class="share-box" id="share-txt">...</div>
     <button class="btn-copy" onclick="copyLink()">📋 Copiar link</button>
   </div>
 </div>
 
+<div id="m-rating" class="modal hidden">
+  <div class="mbox" style="text-align:center">
+    <button class="mclose" onclick="closeModal('m-rating')">✕</button>
+    <h2>⭐ Calificar Paseador</h2>
+    <div id="rating-info" style="margin-bottom:18px"></div>
+    <p style="font-weight:700;color:var(--soft);font-size:14px;margin-bottom:12px">Como fue el paseo?</p>
+    <div id="star-picker" style="display:flex;justify-content:center;gap:10px;margin-bottom:10px">
+      <span class="star-btn" data-v="1" onclick="pickStar(1)">⭐</span>
+      <span class="star-btn" data-v="2" onclick="pickStar(2)">⭐</span>
+      <span class="star-btn" data-v="3" onclick="pickStar(3)">⭐</span>
+      <span class="star-btn" data-v="4" onclick="pickStar(4)">⭐</span>
+      <span class="star-btn" data-v="5" onclick="pickStar(5)">⭐</span>
+    </div>
+    <div id="star-label" style="font-size:15px;font-weight:800;color:var(--or);min-height:22px;margin-bottom:14px"></div>
+    <div class="fg"><label>Comentario (opcional)</label><textarea id="rating-comment" placeholder="Ej: Muy puntual y cariñoso..."></textarea></div>
+    <button class="btn-save" id="btn-submit-rating" onclick="submitRating()">Enviar calificacion ⭐</button>
+  </div>
+</div>
+
 <script>
-const SB_URL='https://vvszrrbxfmfwlrctjwsx.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
-const sb=supabase.createClient(SB_URL,SB_KEY);
+var SB_URL = 'https://vvszrrbxfmfwlrctjwsx.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
+var sb = supabase.createClient(SB_URL, SB_KEY);
 
-let CU=null,CP=null; // current user / profile
-let map=null,routeLine=null,uMarker=null;
-let tracking=false,gpsId=null,tmrId=null;
-let pts=[],t0=null,dist=0,walkId=null;
-let dogAv='🐕',selRole_='owner';
-let dogs=[],reqWalker=null,rtCh=null;
+var CU = null, CP = null;
+var map = null, routeLine = null, uMarker = null;
+var tracking = false, gpsId = null, tmrId = null;
+var pts = [], t0 = null, dist = 0, walkId = null;
+var dogAv = '🐕', selRole_ = 'owner';
+var dogs = [], reqWalker = null, rtCh = null;
+var ratingData = {reqId:null, walkerId:null, walkerName:'', score:0};
 
-// ---- UTILS ----
-const $=id=>document.getElementById(id);
-const cm=id=>$(id).classList.add('hidden');
-const om=id=>$(id).classList.remove('hidden');
-function showErr(m){const e=$('auth-err');e.textContent=m;e.style.display='block';}
-function clrErr(){$('auth-err').style.display='none';}
-function hav(a,b){const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dLa/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
-function fmtT(ms){const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);return h>0?`${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-function stars(n){if(!n||n===0)return '<span style="color:var(--soft);font-size:12px">Sin calificaciones</span>';const full=Math.round(n);return '⭐'.repeat(full)+'☆'.repeat(Math.max(0,5-full));}
-function photoOrEmoji(url,emoji,cls=''){
-  if(url) return `<img src="${url}" class="${cls}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
-  return `<span>${emoji||'🐕'}</span>`;
+function gid(id){ return document.getElementById(id); }
+function showEl(id){ var e=gid(id); if(e){ e.classList.remove('hidden'); e.style.display=''; } }
+function hideEl(id){ var e=gid(id); if(e){ e.classList.add('hidden'); } }
+function closeModal(id){ hideEl(id); }
+function openModal(id){ showEl(id); }
+function showErr(msg){ var e=gid('auth-err'); if(e){ e.textContent=msg; e.style.display='block'; } }
+function clearErr(){ var e=gid('auth-err'); if(e) e.style.display='none'; }
+
+function hav(a,b){
+  var R=6371, dLa=(b.lat-a.lat)*Math.PI/180, dLo=(b.lng-a.lng)*Math.PI/180;
+  var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);
+  return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
+}
+function fmtT(ms){
+  var s=Math.floor(ms/1000), m=Math.floor(s/60), h=Math.floor(m/60);
+  if(h>0) return h+':'+pad(m%60)+':'+pad(s%60);
+  return pad(m)+':'+pad(s%60);
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtDate(d){
+  if(!d) return '';
+  return new Date(d).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+}
+function starsHtml(n){
+  if(!n || n===0) return '<span style="color:var(--soft);font-size:12px">Sin calificaciones</span>';
+  var full=Math.round(n), html='';
+  for(var i=0;i<full;i++) html+='⭐';
+  for(var j=full;j<5;j++) html+='☆';
+  return html+' <span style="font-size:12px;color:var(--soft)">('+n.toFixed(1)+')</span>';
 }
 
-// ---- AUTH ----
 function switchTab(t){
-  $('tab-in').classList.toggle('active',t==='in');
-  $('tab-up').classList.toggle('active',t==='up');
-  $('f-in').classList.toggle('hidden',t!=='in');
-  $('f-up').classList.toggle('hidden',t!=='up');
-  clrErr();
+  gid('tab-in').classList.toggle('active', t==='in');
+  gid('tab-up').classList.toggle('active', t==='up');
+  gid('f-in').classList.toggle('hidden', t!=='in');
+  gid('f-up').classList.toggle('hidden', t!=='up');
+  clearErr();
 }
-function selRole(r){
+function selRoleFn(r){
   selRole_=r;
-  $('rc-owner').classList.toggle('sel',r==='owner');
-  $('rc-walker').classList.toggle('sel',r==='walker');
-  $('ru-walker-fields').classList.toggle('hidden',r!=='walker');
+  gid('rc-owner').classList.toggle('sel', r==='owner');
+  gid('rc-walker').classList.toggle('sel', r==='walker');
+  gid('ru-walker-fields').classList.toggle('hidden', r!=='walker');
 }
-async function doLogin(){
-  const email=$('li-email').value.trim(),pass=$('li-pass').value;
-  if(!email||!pass) return showErr('Completa todos los campos');
-  const btn=$('btn-li'); btn.innerHTML='<span class="spinner"></span>Entrando...'; btn.disabled=true;
-  const {error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){showErr('Email o contraseña incorrectos');btn.innerHTML='Entrar 🐾';btn.disabled=false;}
+function doLogin(){
+  var email=gid('li-email').value.trim(), pass=gid('li-pass').value;
+  if(!email||!pass){ showErr('Completa todos los campos'); return; }
+  var btn=gid('btn-li'); btn.innerHTML='<span class="spinner"></span>Entrando...'; btn.disabled=true;
+  sb.auth.signInWithPassword({email:email, password:pass}).then(function(res){
+    if(res.error){ showErr('Email o contraseña incorrectos'); }
+    btn.innerHTML='Entrar 🐾'; btn.disabled=false;
+  });
 }
-async function doRegister(){
-  const name=$('ru-name').value.trim(),email=$('ru-email').value.trim(),pass=$('ru-pass').value;
-  const photo=$('ru-photo').value.trim(),desc=$('ru-desc').value.trim(),phone=$('ru-phone').value.trim();
-  if(!name||!email||!pass) return showErr('Completa nombre, email y contraseña');
-  if(pass.length<6) return showErr('Contraseña mínimo 6 caracteres');
-  const btn=$('btn-up'); btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,role:selRole_}}});
-  if(error){showErr(error.message);btn.innerHTML='Crear cuenta 🐾';btn.disabled=false;return;}
-  if(data.user){
-    await sb.from('profiles').upsert({id:data.user.id,full_name:name,role:selRole_,photo_url:photo||null,description:desc||null,phone:phone||null});
-  }
-  showErr('✅ Revisa tu email para confirmar tu cuenta');
-  btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false;
+function doRegister(){
+  var name=gid('ru-name').value.trim(), email=gid('ru-email').value.trim(), pass=gid('ru-pass').value;
+  var photo=gid('ru-photo').value.trim(), desc=gid('ru-desc').value.trim(), phone=gid('ru-phone').value.trim();
+  if(!name||!email||!pass){ showErr('Completa nombre, email y contraseña'); return; }
+  if(pass.length<6){ showErr('Contraseña minimo 6 caracteres'); return; }
+  var btn=gid('btn-up'); btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
+  sb.auth.signUp({email:email, password:pass, options:{data:{full_name:name, role:selRole_}}}).then(function(res){
+    if(res.error){ showErr(res.error.message); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
+    if(res.data && res.data.user){
+      sb.from('profiles').upsert({id:res.data.user.id, full_name:name, role:selRole_, photo_url:photo||null, description:desc||null, phone:phone||null, rating:null});
+    }
+    showErr('Cuenta creada! Ya podes iniciar sesion.');
+    btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false;
+  });
 }
-async function doGoogle(){
-  await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+function doGoogle(){
+  sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:window.location.href}});
 }
-async function doLogout(){
-  if(tracking) await stopWalk();
-  await sb.auth.signOut();
-}
-
-// ---- PROFILE ----
-async function loadProfile(user){
-  let {data}=await sb.from('profiles').select('*').eq('id',user.id).single();
-  if(!data){
-    const r=user.user_metadata?.role||'owner';
-    const n=user.user_metadata?.full_name||user.email;
-    await sb.from('profiles').insert({id:user.id,full_name:n,role:r,photo_url:user.user_metadata?.avatar_url||null});
-    ({data}=await sb.from('profiles').select('*').eq('id',user.id).single());
-  }
-  return data;
+function doLogout(){
+  if(tracking) stopWalk();
+  if(rtCh) rtCh.unsubscribe();
+  sb.auth.signOut();
 }
 
-// ---- INIT ----
-async function initApp(user){
-  CU=user; CP=await loadProfile(user);
-  $('auth').classList.add('hidden');
-  $('app').classList.remove('hidden');
-  $('h-role').textContent=CP.role==='owner'?'🏠 Dueño':'🦮 Paseador';
-  // Ajustar nav según rol
-  if(CP.role==='walker'){
-    $('nav-walkers').querySelector('span').textContent='Paseos';
-    $('nav-walkers').querySelector(':first-child') && ($('nav-walkers').innerHTML='📍<span>Mis Paseos</span>');
-  }
-  go('home');
+function loadProfile(user){
+  return sb.from('profiles').select('*').eq('id',user.id).single().then(function(res){
+    if(!res.data){
+      var r=user.user_metadata && user.user_metadata.role ? user.user_metadata.role : 'owner';
+      var n=user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : user.email;
+      return sb.from('profiles').insert({id:user.id, full_name:n, role:r, photo_url:(user.user_metadata&&user.user_metadata.avatar_url)||null, rating:null}).then(function(){
+        return sb.from('profiles').select('*').eq('id',user.id).single().then(function(r2){ return r2.data; });
+      });
+    }
+    return res.data;
+  });
 }
 
-// ---- NAVIGATION ----
+function initApp(user){
+  CU=user;
+  return loadProfile(user).then(function(profile){
+    if(!profile){ showErr('Error al cargar perfil'); return; }
+    CP=profile;
+    hideEl('auth');
+    var appEl=gid('app');
+    appEl.classList.remove('hidden');
+    gid('h-role').textContent = CP.role==='owner' ? '🏠 Dueño' : '🦮 Paseador';
+    if(CP.role==='walker'){
+      gid('nav-walkers').innerHTML='📍<span>Mis Paseos</span>';
+    }
+    go('home');
+  });
+}
+
 function go(page){
-  document.querySelectorAll('.nbtn').forEach(b=>b.classList.toggle('active',b.dataset.p===page));
-  const m=$('main');
-  if(page==='home') CP.role==='owner'?renderOwnerHome(m):renderWalkerHome(m);
-  else if(page==='walkers') CP.role==='owner'?renderWalkersList(m):renderWalkerWalks(m);
+  document.querySelectorAll('.nbtn').forEach(function(b){ b.classList.toggle('active', b.dataset.p===page); });
+  var m=gid('main');
+  if(page==='home'){ if(CP.role==='owner') renderOwnerHome(m); else renderWalkerHome(m); }
+  else if(page==='walkers'){ if(CP.role==='owner') renderWalkersList(m); else renderWalkerWalks(m); }
   else if(page==='requests') renderRequests(m);
   else if(page==='profile') renderProfilePage(m);
 }
 
-// ==========================================
-//   OWNER PAGES
-// ==========================================
-async function renderOwnerHome(m){
-  const myDogs=await getDogs();
-  const dog=myDogs[0];
-  m.innerHTML=`
-    <div class="hero-card">
-      <div class="hc-avatar">${dog?(dog.photo_url?`<img src="${dog.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:36px">${dog.avatar}</span>`):'<span style="font-size:36px">🐕</span>'}</div>
-      <div class="hc-info">
-        <h2>${dog?dog.name:'¡Bienvenido!'}</h2>
-        <p>${dog?((dog.breed||'')+(dog.age?' · '+dog.age+' años':'')):'Todavía no agregaste tu perro'}</p>
-      </div>
-      <div class="hc-badge"><span class="dot idle"></span>En casa</div>
-    </div>
-    ${!dog?`<div style="background:#FFF3EE;border:2px dashed var(--orange);border-radius:18px;padding:20px;text-align:center">
-      <div style="font-size:42px;margin-bottom:8px">🐶</div>
-      <p style="font-weight:800;color:var(--orange);font-size:16px;margin-bottom:4px">¡Agrega tu perro para empezar!</p>
-      <p style="color:var(--soft);font-size:13px;margin-bottom:14px">Necesitás al menos un perro para solicitar paseadores</p>
-      <button class="btn-auth" style="width:auto;padding:12px 28px" onclick="openDogModal()">🐕 Agregar mi perro</button>
-    </div>`:''}
-    <div class="map-wrap"><div id="map"></div></div>
-    <div class="panel">
-      <h3>📡 Paseos activos ahora</h3>
-      <div id="active-walks"></div>
-    </div>
-    <div class="panel">
-      <h3>🐶 Mis perros</h3>
-      <div id="dogs-list"></div>
-      <button class="btn-add" onclick="openDogModal()">+ Agregar perro</button>
-    </div>`;
-  initMap();
-  renderDogsList(myDogs);
-  loadActiveWalks();
+function renderOwnerHome(m){
+  getDogs().then(function(myDogs){
+    var dog=myDogs[0];
+    var html='<div class="hero-card">';
+    html+='<div class="hc-av">';
+    if(dog){ html+=dog.photo_url ? '<img src="'+dog.photo_url+'">' : '<span style="font-size:36px">'+dog.avatar+'</span>'; }
+    else { html+='<span style="font-size:36px">🐕</span>'; }
+    html+='</div><div class="hc-info"><h2>'+(dog?dog.name:'Bienvenido!')+'</h2>';
+    html+='<p>'+(dog ? (dog.breed||'')+(dog.age?' - '+dog.age+' anos':'') : 'Agrega tu perro para empezar')+'</p></div>';
+    html+='<div class="hc-badge"><span class="dot idle"></span>En casa</div></div>';
+    if(!dog){
+      html+='<div style="background:#FFF3EE;border:2px dashed var(--or);border-radius:18px;padding:20px;text-align:center">';
+      html+='<div style="font-size:42px;margin-bottom:8px">🐶</div>';
+      html+='<p style="font-weight:800;color:var(--or);font-size:16px;margin-bottom:4px">Agrega tu perro para empezar!</p>';
+      html+='<p style="color:var(--soft);font-size:13px;margin-bottom:14px">Necesitas al menos un perro para solicitar paseadores</p>';
+      html+='<button class="btn-auth" style="width:auto;padding:12px 28px" onclick="openDogModal()">🐕 Agregar mi perro</button></div>';
+    }
+    html+='<div class="map-wrap"><div id="map"></div></div>';
+    html+='<div class="panel"><h3>📡 Paseos activos ahora</h3><div id="active-walks"></div></div>';
+    html+='<div class="panel"><h3>🐶 Mis perros</h3><div id="dogs-list"></div>';
+    html+='<button class="btn-add" onclick="openDogModal()">+ Agregar perro</button></div>';
+    m.innerHTML=html;
+    initMap();
+    renderDogsList(myDogs);
+    loadActiveWalks();
+  });
 }
 
-async function renderWalkersList(m){
-  m.innerHTML=`<p class="section-title">🦮 Paseadores disponibles</p><div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
-  const {data}=await sb.from('profiles').select('*').eq('role','walker').eq('available',true);
-  const el=$('wlist');
-  if(!data||!data.length){el.innerHTML='<div class="empty"><span>😕</span><p>No hay paseadores disponibles aún</p></div>';return;}
-  el.innerHTML=data.map(w=>`
-    <div class="walker-card" onclick="openReqModal('${w.id}')">
-      <div class="wc-photo">${w.photo_url?`<img src="${w.photo_url}" onerror="this.style.display='none'">`:'🦮'}</div>
-      <div class="wc-info" style="flex:1">
-        <h4>${w.full_name}</h4>
-        <p>${w.phone||'Sin teléfono'}</p>
-        <div class="wc-stars">${stars(w.rating)} <span style="font-size:12px;color:var(--soft)">${w.rating?w.rating.toFixed(1)+"/5":"Sin calificaciones"}</span></div>
-        ${w.description?`<div class="wc-desc">${w.description}</div>`:''}
-      </div>
-      <button class="btn-req" onclick="event.stopPropagation();openReqModal('${w.id}')">Solicitar</button>
-    </div>`).join('');
+function renderWalkersList(m){
+  m.innerHTML='<p style="font-size:16px;font-weight:800;margin-bottom:10px">🦮 Paseadores disponibles</p><div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
+  sb.from('profiles').select('*').eq('role','walker').eq('available',true).then(function(res){
+    var el=gid('wlist');
+    var data=res.data;
+    if(!data||!data.length){ el.innerHTML='<div class="empty"><span>😕</span><p>No hay paseadores disponibles aun</p></div>'; return; }
+    var html='';
+    data.forEach(function(w){
+      html+='<div class="wcard" onclick="openReqModal(\''+w.id+'\')">';
+      html+='<div class="wc-photo">'+(w.photo_url?'<img src="'+w.photo_url+'" onerror="this.style.display=\'none\'">':'🦮')+'</div>';
+      html+='<div class="wc-info"><h4>'+w.full_name+'</h4><p>'+(w.phone||'Sin telefono')+'</p>';
+      html+='<div>'+starsHtml(w.rating)+'</div>';
+      if(w.description) html+='<div style="font-size:12px;color:var(--soft);margin-top:4px">'+w.description+'</div>';
+      html+='</div><button class="btn-req" onclick="event.stopPropagation();openReqModal(\''+w.id+'\')">Solicitar</button></div>';
+    });
+    el.innerHTML=html;
+  });
 }
 
-async function openReqModal(walkerId){
-  const {data:w}=await sb.from('profiles').select('*').eq('id',walkerId).single();
-  reqWalker=w;
-  $('req-walker-info').innerHTML=`
-    <div style="display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px;text-align:left">
-      <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee;border:2px solid var(--orange)">
-        ${w.photo_url?`<img src="${w.photo_url}" style="width:100%;height:100%;object-fit:cover">`:'🦮'}
-      </div>
-      <div><strong style="font-size:15px">${w.full_name}</strong><br><span style="font-size:12px;color:var(--soft)">${stars(w.rating)}</span></div>
-    </div>`;
-  const myDogs=await getDogs();
-  $('req-dog').innerHTML=myDogs.length
-    ? myDogs.map(d=>`<option value="${d.id}">${d.avatar} ${d.name} (${d.breed||'sin raza'})</option>`).join('')
-    : '<option value="">No tienes perros aún</option>';
-  const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
-  $('req-date').value=now.toISOString().slice(0,16);
-  om('m-req');
+function openReqModal(walkerId){
+  sb.from('profiles').select('*').eq('id',walkerId).single().then(function(res){
+    reqWalker=res.data;
+    var w=reqWalker;
+    var html='<div style="display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px">';
+    html+='<div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee;border:2px solid var(--or)">';
+    html+=(w.photo_url?'<img src="'+w.photo_url+'" style="width:100%;height:100%;object-fit:cover">':'🦮')+'</div>';
+    html+='<div><strong style="font-size:15px">'+w.full_name+'</strong><br><span style="font-size:12px;color:var(--soft)">'+starsHtml(w.rating)+'</span></div></div>';
+    gid('req-walker-info').innerHTML=html;
+    getDogs().then(function(myDogs){
+      var sel=gid('req-dog');
+      if(myDogs.length){
+        sel.innerHTML=myDogs.map(function(d){ return '<option value="'+d.id+'">'+d.avatar+' '+d.name+' ('+(d.breed||'sin raza')+')</option>'; }).join('');
+      } else {
+        sel.innerHTML='<option value="">No tenes perros aun</option>';
+      }
+    });
+    var now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
+    gid('req-date').value=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
+    openModal('m-req');
+  });
 }
 
-async function sendRequest(){
-  const dogId=$('req-dog').value, date=$('req-date').value;
-  if(!dogId) return alert('Primero agrega un perro');
+function sendRequest(){
+  var dogId=gid('req-dog').value, date=gid('req-date').value;
+  if(!dogId){ alert('Primero agrega un perro'); return; }
   if(!reqWalker) return;
-  await sb.from('walk_requests').insert({owner_id:CU.id,walker_id:reqWalker.id,dog_id:dogId,scheduled_at:new Date(date).toISOString()});
-  cm('m-req');
-  alert(`✅ Solicitud enviada a ${reqWalker.full_name}! Espera su respuesta.`);
-  go('requests');
+  sb.from('walk_requests').insert({owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId, scheduled_at:new Date(date).toISOString()}).then(function(){
+    closeModal('m-req');
+    alert('Solicitud enviada a '+reqWalker.full_name+'! Espera su respuesta.');
+    go('requests');
+  });
 }
 
-// ==========================================
-//   WALKER PAGES
-// ==========================================
-async function renderWalkerHome(m){
-  const {data:req}=await sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending');
-  const {data:activeWalk}=await sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').single();
-  m.innerHTML=`
-    <div class="hero-card">
-      <div class="hc-avatar">🦮</div>
-      <div class="hc-info"><h2>${CP.full_name}</h2><p>Paseador profesional</p></div>
-      <div class="hc-badge" id="walker-status-badge"><span class="dot ${activeWalk?'on':'idle'}"></span>${activeWalk?'De paseo':'Disponible'}</div>
-    </div>
-    ${activeWalk?`
-    <div class="map-wrap"><div id="map"></div>
-      <div class="map-status-badge"><span class="live-dot"></span>EN VIVO</div>
-      <div class="map-hud" id="map-hud" style="display:flex">
-        <div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>
-        <div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>
-      </div>
-    </div>
-    <div class="ctrls">
-      <button class="btn-m stop" onclick="stopWalk()">🏁 Terminar paseo</button>
-      <button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button>
-    </div>`:`
-    <div class="map-wrap"><div id="map"></div></div>
-    <div class="panel">
-      <h3>📬 Solicitudes pendientes</h3>
-      <div id="pending-req">
-        ${req&&req.length?req.map(r=>`
-          <div class="li">
-            <div class="li-av">${r.profiles?.photo_url?`<img src="${r.profiles.photo_url}">`:'👤'}</div>
-            <div class="li-info">
-              <strong>${r.profiles?.full_name||'Dueño'}</strong>
-              <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'} · ${r.dogs?.breed||''}</span>
-              <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}):''}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <button class="btn-accept" onclick="respondReq('${r.id}','accepted','${r.dog_id}')">✅ Aceptar</button>
-              <button class="btn-reject" onclick="respondReq('${r.id}','rejected','${r.dog_id}')">❌ Rechazar</button>
-            </div>
-          </div>`).join(''):'<div class="empty"><span>📭</span><p>No hay solicitudes pendientes</p></div>'}
-      </div>
-    </div>`}`;
-  initMap();
-  if(activeWalk){
-    walkId=activeWalk.id; tracking=true;
-    resumeWalk();
-  }
+function renderWalkerHome(m){
+  Promise.all([
+    sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').maybeSingle()
+  ]).then(function(results){
+    var reqs=results[0].data||[], activeWalk=results[1].data;
+    var html='<div class="hero-card"><div class="hc-av">🦮</div>';
+    html+='<div class="hc-info"><h2>'+CP.full_name+'</h2><p>Paseador profesional</p></div>';
+    html+='<div class="hc-badge"><span class="dot '+(activeWalk?'on':'idle')+'"></span>'+(activeWalk?'De paseo':'Disponible')+'</div></div>';
+    if(activeWalk){
+      html+='<div class="map-wrap"><div id="map"></div>';
+      html+='<div class="map-live"><span class="live-dot"></span>EN VIVO</div>';
+      html+='<div class="map-hud" id="map-hud" style="display:flex">';
+      html+='<div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>';
+      html+='<div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>';
+      html+='</div></div>';
+      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk()">🏁 Terminar</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
+    } else {
+      html+='<div class="map-wrap"><div id="map"></div></div>';
+      html+='<div class="panel"><h3>📬 Solicitudes pendientes</h3><div id="pending-req">';
+      if(reqs.length){
+        reqs.forEach(function(r){
+          html+='<div class="li">';
+          html+='<div class="li-av">'+(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'">'  :'👤')+'</div>';
+          html+='<div class="li-info"><strong>'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueno')+'</strong>';
+          html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span>';
+          html+='<span>'+fmtDate(r.scheduled_at)+'</span></div>';
+          html+='<div style="display:flex;flex-direction:column;gap:6px">';
+          html+='<button class="btn-accept" onclick="respondReq(\''+r.id+'\',\'accepted\',\''+r.dog_id+'\')">✅ Aceptar</button>';
+          html+='<button class="btn-reject" onclick="respondReq(\''+r.id+'\',\'rejected\',\''+r.dog_id+'\')">❌ Rechazar</button>';
+          html+='</div></div>';
+        });
+      } else {
+        html+='<div class="empty"><span>📭</span><p>No hay solicitudes pendientes</p></div>';
+      }
+      html+='</div></div>';
+    }
+    m.innerHTML=html;
+    initMap();
+    if(activeWalk){ walkId=activeWalk.id; tracking=true; resumeWalk(); }
+  });
 }
 
-async function respondReq(reqId, status, dogId){
-  await sb.from('walk_requests').update({status}).eq('id',reqId);
-  if(status==='accepted'){
-    const {data:walk}=await sb.from('walks').insert({request_id:reqId,walker_id:CU.id,dog_id:dogId,status:'active'}).select().single();
-    walkId=walk?.id;
-    tracking=true;
-    alert('✅ ¡Solicitud aceptada! Cuando llegues con el perro presiona Iniciar Paseo.');
-    go('home');
-  } else {
-    alert('Solicitud rechazada.');
-    go('home');
-  }
+function respondReq(reqId, status, dogId){
+  sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
+    if(status==='accepted'){
+      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active'}).select().single().then(function(res){
+        walkId=res.data&&res.data.id?res.data.id:null;
+        tracking=true;
+        alert('Solicitud aceptada! El GPS se activara cuando empieces.');
+        go('home');
+      });
+    } else {
+      alert('Solicitud rechazada.');
+      go('home');
+    }
+  });
 }
 
-async function renderWalkerWalks(m){
-  m.innerHTML=`<p class="section-title">📍 Mis paseos activos</p><div id="wwalks"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
-  const {data}=await sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active');
-  const el=$('wwalks');
-  if(!data||!data.length){el.innerHTML='<div class="empty"><span>🌿</span><p>No tienes paseos activos</p></div>';return;}
-  el.innerHTML=data.map(w=>`
-    <div class="li">
-      <div class="li-av">${w.dogs?.photo_url?`<img src="${w.dogs.photo_url}">`:(w.dogs?.avatar||'🐕')}</div>
-      <div class="li-info"><strong>${w.dogs?.name||'Perro'}</strong><span>Iniciado: ${new Date(w.started_at).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</span></div>
-      <button class="btn-watch" onclick="startActiveWalk('${w.id}')">📍 GPS</button>
-    </div>`).join('');
+function renderWalkerWalks(m){
+  m.innerHTML='<p style="font-size:16px;font-weight:800;margin-bottom:10px">📍 Mis paseos activos</p><div id="wwalks"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
+  sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').then(function(res){
+    var el=gid('wwalks'), data=res.data;
+    if(!data||!data.length){ el.innerHTML='<div class="empty"><span>🌿</span><p>No tenes paseos activos</p></div>'; return; }
+    var html='';
+    data.forEach(function(w){
+      html+='<div class="li"><div class="li-av">'+(w.dogs&&w.dogs.photo_url?'<img src="'+w.dogs.photo_url+'">':(w.dogs&&w.dogs.avatar?w.dogs.avatar:'🐕'))+'</div>';
+      html+='<div class="li-info"><strong>'+(w.dogs&&w.dogs.name?w.dogs.name:'Perro')+'</strong><span>Iniciado: '+fmtDate(w.started_at)+'</span></div>';
+      html+='<button class="btn-watch" onclick="startActiveWalk(\''+w.id+'\')">📍 GPS</button></div>';
+    });
+    el.innerHTML=html;
+  });
 }
 
-async function startActiveWalk(wId){
-  walkId=wId; tracking=true;
-  go('home');
-}
+function startActiveWalk(wId){ walkId=wId; tracking=true; go('home'); }
 
-// ==========================================
-//   REQUESTS PAGE (ambos roles)
-// ==========================================
-async function renderRequests(m){
-  m.innerHTML=`<p class="section-title">📋 Solicitudes</p><div id="req-list"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
-  let q;
+function renderRequests(m){
+  m.innerHTML='<p style="font-size:16px;font-weight:800;margin-bottom:10px">📋 Solicitudes</p><div id="req-list"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
+  var q;
   if(CP.role==='owner'){
     q=sb.from('walk_requests').select('*,profiles!walk_requests_walker_id_fkey(id,full_name,photo_url,rating),dogs(name,avatar,photo_url)').eq('owner_id',CU.id).order('created_at',{ascending:false});
   } else {
     q=sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('walker_id',CU.id).order('created_at',{ascending:false});
   }
-  const {data}=await q;
-  // obtener qué paseos ya calificó este dueño
-  let ratedSet=new Set();
-  if(CP.role==='owner'){
-    const {data:myRatings}=await sb.from('ratings').select('walk_request_id').eq('owner_id',CU.id);
-    if(myRatings) myRatings.forEach(r=>ratedSet.add(r.walk_request_id));
-  }
-  const el=$('req-list');
-  if(!data||!data.length){el.innerHTML='<div class="empty"><span>📭</span><p>No hay solicitudes aún</p></div>';return;}
-  el.innerHTML=data.map(r=>{
-    const other=r.profiles;
-    const statusMap={pending:'sp-pending',accepted:'sp-accepted',rejected:'sp-rejected',completed:'sp-completed'};
-    const statusLbl={pending:'⏳ Pendiente',accepted:'✅ Aceptado',rejected:'❌ Rechazado',completed:'🏁 Completado'};
-    const canRate=CP.role==='owner' && r.status==='completed' && !ratedSet.has(r.id);
-    const alreadyRated=CP.role==='owner' && r.status==='completed' && ratedSet.has(r.id);
-    return `<div class="li" style="${r.status==='completed'?'border:2px solid #D4EDDA':''}">
-      <div class="li-av">${other?.photo_url?`<img src="${other.photo_url}">`:'👤'}</div>
-      <div class="li-info">
-        <strong>${other?.full_name||'Usuario'}</strong>
-        <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'}</span>
-        <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}):''}</span>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-        <span class="status-pill ${statusMap[r.status]||''}">${statusLbl[r.status]||r.status}</span>
-        ${canRate?`<button onclick="openRatingModal('${r.id}','${other?.id}','${other?.full_name||'Paseador'}','${other?.photo_url||''}')" style="background:linear-gradient(135deg,#FFD23F,#FF6B35);color:#fff;border:none;border-radius:10px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">⭐ Calificar</button>`:''}
-        ${alreadyRated?`<span style="font-size:11px;color:var(--green);font-weight:700">✅ Ya calificaste</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  Promise.all([
+    q,
+    CP.role==='owner' ? sb.from('ratings').select('walk_request_id').eq('owner_id',CU.id) : Promise.resolve({data:[]})
+  ]).then(function(results){
+    var data=results[0].data||[];
+    var ratedArr=results[1].data||[];
+    var ratedSet={};
+    ratedArr.forEach(function(r){ ratedSet[r.walk_request_id]=true; });
+    var el=gid('req-list');
+    if(!data.length){ el.innerHTML='<div class="empty"><span>📭</span><p>No hay solicitudes aun</p></div>'; return; }
+    var statusMap={pending:'sp-pending',accepted:'sp-accepted',rejected:'sp-rejected',completed:'sp-completed'};
+    var statusLbl={pending:'⏳ Pendiente',accepted:'✅ Aceptado',rejected:'❌ Rechazado',completed:'🏁 Completado'};
+    var html='';
+    data.forEach(function(r){
+      var other=r.profiles;
+      var canRate=CP.role==='owner' && r.status==='completed' && !ratedSet[r.id];
+      var alreadyRated=CP.role==='owner' && r.status==='completed' && ratedSet[r.id];
+      html+='<div class="li"><div class="li-av">'+(other&&other.photo_url?'<img src="'+other.photo_url+'">'  :'👤')+'</div>';
+      html+='<div class="li-info"><strong>'+(other&&other.full_name?other.full_name:'Usuario')+'</strong>';
+      html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span>';
+      html+='<span>'+fmtDate(r.scheduled_at)+'</span></div>';
+      html+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">';
+      html+='<span class="sp-pill '+(statusMap[r.status]||'')+'">'+(statusLbl[r.status]||r.status)+'</span>';
+      if(canRate){
+        var wid=other&&other.id?other.id:'';
+        var wname=other&&other.full_name?other.full_name:'Paseador';
+        var wphoto=other&&other.photo_url?other.photo_url:'';
+        html+='<button onclick="openRatingModal(\''+r.id+'\',\''+wid+'\',\''+wname+'\',\''+wphoto+'\')" style="background:linear-gradient(135deg,#FFD23F,#FF6B35);color:#fff;border:none;border-radius:10px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">⭐ Calificar</button>';
+      }
+      if(alreadyRated) html+='<span style="font-size:11px;color:var(--gr);font-weight:700">✅ Calificado</span>';
+      html+='</div></div>';
+    });
+    el.innerHTML=html;
+  });
 }
 
-// ==========================================
-//   ACTIVE WALKS (owner watches)
-// ==========================================
-async function loadActiveWalks(){
-  const el=$('active-walks'); if(!el) return;
-  const {data}=await sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active');
-  if(!data||!data.length){
-    el.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-  } else {
-    el.innerHTML=data.map(w=>`
-      <div class="li" style="border:2px solid #FFE8D6">
-        <div class="li-av">${w.dogs?.photo_url?`<img src="${w.dogs.photo_url}">`:(w.dogs?.avatar||'🐕')}</div>
-        <div class="li-info">
-          <strong>${w.dogs?.name||'Perro'}</strong>
-          <span>🦮 ${w.profiles?.full_name||'Paseador'}</span>
-        </div>
-        <button class="btn-watch" onclick="watchWalk('${w.id}')">Ver 📍</button>
-      </div>`).join('');
-  }
-  setTimeout(loadActiveWalks,10000);
-}
-
-async function watchWalk(wId){
-  const m=$('main');
-  m.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <button onclick="go('home')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">← Volver</button>
-      <span style="font-weight:800;color:var(--orange)">📡 Paseo en vivo</span>
-    </div>
-    <div class="map-wrap" style="height:420px"><div id="map"></div>
-      <div class="map-status-badge"><span class="live-dot"></span>SEGUIMIENTO EN VIVO</div>
-    </div>`;
-  setTimeout(async()=>{
-    initMap();
-    const {data:gps}=await sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at');
-    if(gps&&gps.length){
-      const lls=gps.map(p=>[p.lat,p.lng]);
-      routeLine.setLatLngs(lls);
-      map.fitBounds(lls);
-      const last=gps[gps.length-1];
-      uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
+function loadActiveWalks(){
+  var el=gid('active-walks');
+  if(!el) return;
+  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').then(function(res){
+    var data=res.data;
+    if(!el) return;
+    if(!data||!data.length){
+      el.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+    } else {
+      var html='';
+      data.forEach(function(w){
+        html+='<div class="li" style="border:2px solid #FFE8D6">';
+        html+='<div class="li-av">'+(w.dogs&&w.dogs.photo_url?'<img src="'+w.dogs.photo_url+'">':(w.dogs&&w.dogs.avatar?w.dogs.avatar:'🐕'))+'</div>';
+        html+='<div class="li-info"><strong>'+(w.dogs&&w.dogs.name?w.dogs.name:'Perro')+'</strong>';
+        html+='<span>🦮 '+(w.profiles&&w.profiles.full_name?w.profiles.full_name:'Paseador')+'</span></div>';
+        html+='<button class="btn-watch" onclick="watchWalk(\''+w.id+'\')">Ver 📍</button></div>';
+      });
+      el.innerHTML=html;
     }
-    if(rtCh) rtCh.unsubscribe();
-    rtCh=sb.channel('walk-'+wId).on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:`walk_id=eq.${wId}`},({new:p})=>{
-      routeLine.addLatLng([p.lat,p.lng]); map.panTo([p.lat,p.lng]);
-      if(uMarker) uMarker.setLatLng([p.lat,p.lng]); else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
-    }).subscribe();
-  },300);
+    setTimeout(loadActiveWalks, 10000);
+  });
 }
 
-// ==========================================
-//   MAP & WALK (walker GPS)
-// ==========================================
-function initMap(lat=-34.603,lng=-58.381){
-  if(map){map.remove();map=null;uMarker=null;}
-  const el=$('map'); if(!el) return;
+function watchWalk(wId){
+  var m=gid('main');
+  m.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button onclick="go(\'home\')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">← Volver</button><span style="font-weight:800;color:var(--or)">📡 Paseo en vivo</span></div><div class="map-wrap" style="height:420px"><div id="map"></div><div class="map-live"><span class="live-dot"></span>EN VIVO</div></div>';
+  setTimeout(function(){
+    initMap();
+    sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at').then(function(res){
+      var gps=res.data;
+      if(gps&&gps.length){
+        var lls=gps.map(function(p){ return [p.lat,p.lng]; });
+        routeLine.setLatLngs(lls);
+        map.fitBounds(lls);
+        var last=gps[gps.length-1];
+        uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
+      }
+      if(rtCh) rtCh.unsubscribe();
+      rtCh=sb.channel('walk-'+wId).on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:'walk_id=eq.'+wId},function(payload){
+        var p=payload.new;
+        routeLine.addLatLng([p.lat,p.lng]);
+        map.panTo([p.lat,p.lng]);
+        if(uMarker) uMarker.setLatLng([p.lat,p.lng]);
+        else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
+      }).subscribe();
+    });
+  }, 300);
+}
+
+function initMap(lat, lng){
+  lat=lat||-34.603; lng=lng||-58.381;
+  if(map){ map.remove(); map=null; uMarker=null; routeLine=null; }
+  var el=gid('map');
+  if(!el) return;
   map=L.map('map',{zoomControl:false}).setView([lat,lng],13);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
-  routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1,dashArray:null}).addTo(map);
+  routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1}).addTo(map);
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      p=>{
-        map.setView([p.coords.latitude,p.coords.longitude],15);
-        if(!uMarker) uMarker=L.marker([p.coords.latitude,p.coords.longitude],{icon:L.divIcon({html:'<div style="font-size:22px">📍</div>',iconSize:[28,28],iconAnchor:[14,14],className:''})}).addTo(map);
-      },
-      err=>{
-        // Sin GPS: mostrar Buenos Aires con aviso
-        map.setView([lat,lng],13);
-        const warn=L.control({position:'topright'});
-        warn.onAdd=()=>{const d=document.createElement('div');d.style.cssText='background:rgba(255,107,53,.9);color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;font-family:Nunito,sans-serif';d.textContent='📍 Activá el GPS para ver tu ubicación';return d;};
-        warn.addTo(map);
-      },
-      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
-    );
+    navigator.geolocation.getCurrentPosition(function(p){
+      if(map) map.setView([p.coords.latitude,p.coords.longitude],15);
+    }, function(){}, {enableHighAccuracy:true,timeout:8000,maximumAge:0});
   }
 }
+
 function dogIcon(){
-  const av=dogs[0]?.avatar||'🐕';
-  const html='<div style="position:relative;display:flex;align-items:center;justify-content:center">'+
-    '<div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(255,107,53,.25);animation:pulse 1.5s infinite;"></div>'+
-    '<div style="position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,107,53,.4);"></div>'+
-    '<div style="position:relative;font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));z-index:1">'+av+'</div>'+
-    '</div>';
-  return L.divIcon({html:html,iconSize:[44,44],iconAnchor:[22,22],className:''});
+  var av=dogs&&dogs[0]&&dogs[0].avatar ? dogs[0].avatar : '🐕';
+  var html='<div style="position:relative;display:flex;align-items:center;justify-content:center">' +
+    '<div style="position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(255,107,53,.3);animation:pulse 1.5s infinite;"></div>' +
+    '<div style="position:relative;font-size:24px;z-index:1">'+av+'</div></div>';
+  return L.divIcon({html:html,iconSize:[40,40],iconAnchor:[20,20],className:''});
 }
 
 function resumeWalk(){
   if(!navigator.geolocation||!walkId) return;
   pts=[]; dist=0; t0=Date.now();
-  tmrId=setInterval(()=>{const e=$('s-time');if(e)e.textContent=fmtT(Date.now()-t0);},1000);
-  gpsId=navigator.geolocation.watchPosition(async pos=>{
-    const {latitude:lat,longitude:lng}=pos.coords;
-    const pt={lat,lng};
+  tmrId=setInterval(function(){ var e=gid('s-time'); if(e) e.textContent=fmtT(Date.now()-t0); },1000);
+  gpsId=navigator.geolocation.watchPosition(function(pos){
+    var lat=pos.coords.latitude, lng=pos.coords.longitude;
+    var pt={lat:lat,lng:lng};
     if(pts.length>0) dist+=hav(pts[pts.length-1],pt);
     pts.push(pt);
-    const ed=$('s-dist'); if(ed) ed.textContent=dist.toFixed(2)+' km';
+    var ed=gid('s-dist'); if(ed) ed.textContent=dist.toFixed(2)+' km';
     if(routeLine) routeLine.addLatLng([lat,lng]);
     if(map) map.panTo([lat,lng]);
-    if(uMarker) uMarker.setLatLng([lat,lng]); else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
-    if(walkId) await sb.from('gps_points').insert({walk_id:walkId,lat,lng});
-  },err=>{if(err.code===1)alert('Activa el GPS 📍');},{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+    if(uMarker) uMarker.setLatLng([lat,lng]);
+    else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
+    if(walkId) sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
+  },function(err){ if(err.code===1) alert('Activa el GPS 📍'); },
+  {enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
 
-async function stopWalk(){
+function stopWalk(){
   tracking=false;
-  if(gpsId!==null){navigator.geolocation.clearWatch(gpsId);gpsId=null;}
+  if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   clearInterval(tmrId);
-  const dur=Date.now()-t0;
-  if(walkId) await sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',walkId);
-  $('s-dist').textContent=dist.toFixed(2)+' km';
-  $('s-time').textContent=fmtT(dur);
-  $('s-pts').textContent=pts.length;
-  om('m-sum');
+  var dur=Date.now()-t0;
+  if(walkId) sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',walkId);
+  var sd=gid('s-dist'); if(sd) sd.textContent=dist.toFixed(2)+' km';
+  var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
+  var sp=gid('s-pts'); if(sp) sp.textContent=pts.length;
+  openModal('m-sum');
   walkId=null;
 }
 
 function showShare(){
   if(!walkId) return;
-  const link=`${location.origin}${location.pathname}?watch=${walkId}`;
-  $('share-txt').textContent=link;
-  om('m-share');
+  gid('share-txt').textContent=location.origin+location.pathname+'?watch='+walkId;
+  openModal('m-share');
 }
-function copyLink(){navigator.clipboard.writeText($('share-txt').textContent).then(()=>alert('¡Copiado! 📋'));}
+function copyLink(){ navigator.clipboard.writeText(gid('share-txt').textContent).then(function(){ alert('Copiado!'); }); }
 
-// ==========================================
-//   DOGS
-// ==========================================
-async function getDogs(){
-  const {data}=await sb.from('dogs').select('*').eq('owner_id',CU.id);
-  dogs=data||[]; return dogs;
+function getDogs(){
+  if(!CU) return Promise.resolve([]);
+  return sb.from('dogs').select('*').eq('owner_id',CU.id).then(function(res){ dogs=res.data||[]; return dogs; });
 }
-function renderDogsList(dogsArr){
-  const el=$('dogs-list'); if(!el) return;
-  el.innerHTML=dogsArr.map(d=>`
-    <div class="li">
-      <div class="li-av">${d.photo_url?`<img src="${d.photo_url}">`:`<span>${d.avatar||'🐕'}</span>`}</div>
-      <div class="li-info"><strong>${d.name}</strong><span>${d.breed||'Sin raza'}${d.age?' · '+d.age+' años':''}</span></div>
-    </div>`).join('')||'';
-}
-async function saveDog(){
-  const name=$('d-name').value.trim(), breed=$('d-breed').value.trim();
-  const age=parseInt($('d-age').value)||null, photo=$('d-photo').value.trim();
-  if(!name) return alert('Escribe el nombre del perro 🐕');
-  const btn=document.querySelector('#m-dog .btn-save');
-  btn.textContent='Guardando...'; btn.disabled=true;
-  try {
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Tiempo de espera agotado, intentá de nuevo')),8000));
-    const insert=sb.from('dogs').insert({owner_id:CU.id,name,breed:breed||null,age,photo_url:photo||null,avatar:dogAv});
-    const {error}=await Promise.race([insert,timeout]);
-    if(error) throw new Error(error.message);
-    $('d-name').value=''; $('d-breed').value=''; $('d-age').value=''; $('d-photo').value='';
-    dogAv='🐕';
-    document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
-    document.querySelector('#av-dog .av-opt[data-e="🐕"]').classList.add('sel');
-    cm('m-dog');
-    go('home');
-  } catch(e) {
-    alert('❌ '+e.message);
-  } finally {
-    btn.textContent='Guardar 💾'; btn.disabled=false;
-  }
+function renderDogsList(arr){
+  var el=gid('dogs-list');
+  if(!el) return;
+  if(!arr||!arr.length){ el.innerHTML=''; return; }
+  var html='';
+  arr.forEach(function(d){
+    html+='<div class="li"><div class="li-av">'+(d.photo_url?'<img src="'+d.photo_url+'">'  :'<span>'+(d.avatar||'🐕')+'</span>')+'</div>';
+    html+='<div class="li-info"><strong>'+d.name+'</strong><span>'+(d.breed||'Sin raza')+(d.age?' - '+d.age+' anos':'')+'</span></div></div>';
+  });
+  el.innerHTML=html;
 }
 
 function openDogModal(){
-  // limpiar form antes de abrir
-  $('d-name').value=''; $('d-breed').value=''; $('d-age').value=''; $('d-photo').value='';
+  gid('d-name').value=''; gid('d-breed').value=''; gid('d-age').value=''; gid('d-photo').value='';
   dogAv='🐕';
-  document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
-  document.querySelector('#av-dog .av-opt[data-e="🐕"]').classList.add('sel');
-  om('m-dog');
+  document.querySelectorAll('#av-dog .av-opt').forEach(function(x){ x.classList.remove('sel'); });
+  var first=document.querySelector('#av-dog .av-opt[data-e="🐕"]');
+  if(first) first.classList.add('sel');
+  openModal('m-dog');
 }
 
-// avatar picker dog
-// av-dog listener se inicializa dentro de DOMContentLoaded
+function saveDog(){
+  var name=gid('d-name').value.trim();
+  if(!name){ alert('Escribe el nombre del perro'); return; }
+  var breed=gid('d-breed').value.trim();
+  var age=parseInt(gid('d-age').value)||null;
+  var photo=gid('d-photo').value.trim();
+  var btn=gid('btn-save-dog');
+  btn.textContent='Guardando...'; btn.disabled=true;
+  sb.from('dogs').insert({owner_id:CU.id,name:name,breed:breed||null,age:age,photo_url:photo||null,avatar:dogAv}).then(function(res){
+    btn.textContent='Guardar 💾'; btn.disabled=false;
+    if(res.error){ alert('Error: '+res.error.message); return; }
+    closeModal('m-dog');
+    go('home');
+  });
+}
 
-// ==========================================
-//   PROFILE PAGE
-// ==========================================
 function renderProfilePage(m){
-  m.innerHTML=`
-    <div class="hero-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">
-      <div class="hc-avatar">${CP?.photo_url?`<img src="${CP.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:'👤'}</div>
-      <div class="hc-info">
-        <h2>${CP?.full_name||'Usuario'}</h2>
-        <p>${CP?.role==='owner'?'🏠 Dueño de perro':'🦮 Paseador profesional'}</p>
-        ${CP?.rating?`<p>⭐ ${CP.rating}/5</p>`:''}
-      </div>
-    </div>
-    <div class="panel">
-      <div class="fg"><label>Email</label><p style="font-weight:700;padding:4px 0">📧 ${CU?.email||''}</p></div>
-      ${CP?.phone?`<div class="fg"><label>Teléfono</label><p style="font-weight:700;padding:4px 0">📱 ${CP.phone}</p></div>`:''}
-      ${CP?.description?`<div class="fg"><label>Descripción</label><p style="font-weight:600;font-size:14px;color:var(--soft)">${CP.description}</p></div>`:''}
-    </div>
-    <button onclick="doLogout()" style="width:100%;background:#FFF0F0;color:var(--red);border:none;border-radius:16px;padding:13px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🚪 Cerrar sesión</button>`;
+  var html='<div class="hero-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">';
+  html+='<div class="hc-av">'+(CP&&CP.photo_url?'<img src="'+CP.photo_url+'">'  :'👤')+'</div>';
+  html+='<div class="hc-info"><h2>'+(CP&&CP.full_name?CP.full_name:'Usuario')+'</h2>';
+  html+='<p>'+(CP&&CP.role==='owner'?'🏠 Dueno de perro':'🦮 Paseador profesional')+'</p>';
+  if(CP&&CP.rating) html+='<p>'+starsHtml(CP.rating)+'</p>';
+  html+='</div></div>';
+  html+='<div class="panel"><div class="fg"><label>Email</label><p style="font-weight:700;padding:4px 0">📧 '+(CU&&CU.email?CU.email:'')+'</p></div>';
+  if(CP&&CP.phone) html+='<div class="fg"><label>Telefono</label><p style="font-weight:700;padding:4px 0">📱 '+CP.phone+'</p></div>';
+  if(CP&&CP.description) html+='<div class="fg"><label>Descripcion</label><p style="font-weight:600;font-size:14px;color:var(--soft)">'+CP.description+'</p></div>';
+  html+='</div><button onclick="doLogout()" style="width:100%;background:#FFF0F0;color:var(--re);border:none;border-radius:16px;padding:13px;font-size:16px;font-family:Nunito,sans-serif;font-weight:800;cursor:pointer">🚪 Cerrar sesion</button>';
+  m.innerHTML=html;
 }
-
-
-// ==========================================
-//   RATING SYSTEM
-// ==========================================
-let ratingData={reqId:null,walkerId:null,walkerName:null,score:0};
 
 function openRatingModal(reqId,walkerId,walkerName,walkerPhoto){
-  ratingData={reqId,walkerId,walkerName,score:0};
-  $('rating-walker-info').innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px">
-      <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee;border:2px solid var(--orange)">
-        ${walkerPhoto?`<img src="${walkerPhoto}" style="width:100%;height:100%;object-fit:cover">`:'🦮'}
-      </div>
-      <strong style="font-size:16px">${walkerName}</strong>
-    </div>`;
+  ratingData={reqId:reqId,walkerId:walkerId,walkerName:walkerName,score:0};
+  var html='<div style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px">';
+  html+='<div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee;border:2px solid var(--or)">';
+  html+=(walkerPhoto?'<img src="'+walkerPhoto+'" style="width:100%;height:100%;object-fit:cover">':'🦮')+'</div>';
+  html+='<strong style="font-size:16px">'+walkerName+'</strong></div>';
+  gid('rating-info').innerHTML=html;
   pickStar(0);
-  $('rating-comment').value='';
-  om('m-rating');
+  gid('rating-comment').value='';
+  openModal('m-rating');
 }
 
 function pickStar(v){
   ratingData.score=v;
-  const labels=['','😞 Muy malo','😕 Regular','😊 Bueno','😄 Muy bueno','🤩 ¡Excelente!'];
-  $('star-label').textContent=v>0?labels[v]:'Tocá una estrella para calificar';
-  document.querySelectorAll('.star-btn').forEach(s=>{
-    const sv=parseInt(s.dataset.v);
-    s.style.filter=sv<=v?'grayscale(0) drop-shadow(0 2px 4px rgba(255,210,63,.6))':'grayscale(1)';
+  var labels=['','😞 Muy malo','😕 Regular','😊 Bueno','😄 Muy bueno','🤩 Excelente!'];
+  gid('star-label').textContent=v>0?labels[v]:'Toca una estrella';
+  document.querySelectorAll('.star-btn').forEach(function(s){
+    var sv=parseInt(s.dataset.v);
+    s.style.filter=sv<=v?'grayscale(0)':'grayscale(1)';
     s.style.transform=sv<=v?'scale(1.15)':'scale(1)';
   });
 }
 
-async function submitRating(){
-  if(!ratingData.score) return alert('Seleccioná una calificación ⭐');
-  const comment=$('rating-comment').value.trim();
-  const btn=document.querySelector('#m-rating .btn-save');
+function submitRating(){
+  if(!ratingData.score){ alert('Selecciona una calificacion'); return; }
+  var comment=gid('rating-comment').value.trim();
+  var btn=gid('btn-submit-rating');
   btn.textContent='Enviando...'; btn.disabled=true;
-  // guardar en tabla ratings
-  const {error}=await sb.from('ratings').insert({
-    walk_request_id:ratingData.reqId,
-    owner_id:CU.id,
-    walker_id:ratingData.walkerId,
-    score:ratingData.score,
-    comment:comment||null
+  sb.from('ratings').insert({walk_request_id:ratingData.reqId,owner_id:CU.id,walker_id:ratingData.walkerId,score:ratingData.score,comment:comment||null}).then(function(res){
+    if(res.error){ alert('Error: '+res.error.message); btn.textContent='Enviar calificacion ⭐'; btn.disabled=false; return; }
+    sb.from('ratings').select('score').eq('walker_id',ratingData.walkerId).then(function(r2){
+      if(r2.data&&r2.data.length){
+        var avg=0; r2.data.forEach(function(x){ avg+=x.score; }); avg=avg/r2.data.length;
+        sb.from('profiles').update({rating:Math.round(avg*10)/10}).eq('id',ratingData.walkerId);
+      }
+    });
+    closeModal('m-rating');
+    btn.textContent='Enviar calificacion ⭐'; btn.disabled=false;
+    alert('Gracias por calificar a '+ratingData.walkerName+'!');
+    go('requests');
   });
-  if(error){alert('Error al enviar: '+error.message);btn.textContent='Enviar calificación ⭐';btn.disabled=false;return;}
-  // recalcular promedio del paseador
-  const {data:allRatings}=await sb.from('ratings').select('score').eq('walker_id',ratingData.walkerId);
-  if(allRatings&&allRatings.length){
-    const avg=allRatings.reduce((s,r)=>s+r.score,0)/allRatings.length;
-    await sb.from('profiles').update({rating:Math.round(avg*10)/10}).eq('id',ratingData.walkerId);
-  }
-  cm('m-rating');
-  btn.textContent='Enviar calificación ⭐'; btn.disabled=false;
-  alert(`✅ ¡Gracias por calificar a ${ratingData.walkerName}!`);
-  go('requests');
 }
 
-// ==========================================
-//   BOOTSTRAP
-// ==========================================
-window.addEventListener('DOMContentLoaded',async()=>{
-  // Avatar picker del perro
-  const avDog=$('av-dog');
-  if(avDog) avDog.addEventListener('click',e=>{
-    const o=e.target.closest('.av-opt'); if(!o) return;
-    document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
-    o.classList.add('sel'); dogAv=o.dataset.e;
-  });
-  const watchParam=new URLSearchParams(location.search).get('watch');
+window.addEventListener('DOMContentLoaded', function(){
+  // Avatar picker
+  var avDog=gid('av-dog');
+  if(avDog){
+    avDog.addEventListener('click',function(e){
+      var o=e.target.closest('.av-opt');
+      if(!o) return;
+      document.querySelectorAll('#av-dog .av-opt').forEach(function(x){ x.classList.remove('sel'); });
+      o.classList.add('sel');
+      dogAv=o.dataset.e;
+    });
+  }
 
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session){await initApp(session.user);}
-    else if(event==='SIGNED_OUT'){
-      $('app').classList.add('hidden');
-      $('auth').classList.remove('hidden');
-    }
-  });
+  var watchParam=new URLSearchParams(location.search).get('watch');
 
-  // Esperar splash y luego verificar sesión
-  setTimeout(async()=>{
-    const splash=$('splash');
-    splash.classList.add('out');
-    await new Promise(r=>setTimeout(r,650));
-    splash.style.display='none';
-    splash.style.visibility='hidden';
-    try {
-      const {data:{session}}=await sb.auth.getSession();
-      if(session){
-        await initApp(session.user);
+  sb.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      initApp(session.user).then(function(){
         if(watchParam) watchWalk(watchParam);
-      } else {
-        // Mostrar auth con seguridad
-        $('app').classList.add('hidden');
-        $('auth').classList.remove('hidden');
-        $('auth').style.display='flex';
-      }
-    } catch(e){
-      console.error('Error al iniciar:', e);
-      $('auth').classList.remove('hidden');
-      $('auth').style.display='flex';
+      });
+    } else if(event==='SIGNED_OUT'){
+      hideEl('app');
+      var auth=gid('auth');
+      auth.classList.remove('hidden');
+      auth.style.display='flex';
     }
+  });
+
+  setTimeout(function(){
+    var splash=gid('splash');
+    splash.classList.add('out');
+    setTimeout(function(){
+      splash.style.display='none';
+      sb.auth.getSession().then(function(res){
+        var session=res.data&&res.data.session?res.data.session:null;
+        if(session){
+          initApp(session.user).then(function(){
+            if(watchParam) watchWalk(watchParam);
+          });
+        } else {
+          var auth=gid('auth');
+          auth.classList.remove('hidden');
+          auth.style.display='flex';
+        }
+      }).catch(function(){
+        var auth=gid('auth');
+        auth.classList.remove('hidden');
+        auth.style.display='flex';
+      });
+    }, 600);
   }, 2000);
 });
 </script>
