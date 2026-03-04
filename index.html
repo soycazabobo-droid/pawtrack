@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PawTrack 🐾</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash">
+    <div class="splash-inner">
+      <div class="paw-logo">🐾</div>
+      <h1>PawTrack</h1>
+      <p>Rastrea los paseos de tu peludo</p>
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- APP WRAPPER -->
+  <div id="app" class="hidden">
+
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <span class="logo-icon">🐾</span>
+        <span class="logo-text">PawTrack</span>
+      </div>
+      <div class="header-right">
+        <button id="btn-profile" class="icon-btn" title="Mi perro">🐶</button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main>
+
+      <!-- DOG CARD -->
+      <div class="dog-card" id="dog-card">
+        <div class="dog-avatar" id="dog-avatar-display">🐕</div>
+        <div class="dog-info">
+          <h2 id="dog-name-display">Mi Perro</h2>
+          <p id="dog-breed-display">Agrega el perfil de tu perro</p>
+        </div>
+        <div class="dog-status" id="dog-status-badge">
+          <span class="dot idle"></span> En casa
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-overlay-info" id="live-info" style="display:none">
+          <div class="live-stat">
+            <span class="stat-icon">📍</span>
+            <span id="stat-dist">0.00 km</span>
+          </div>
+          <div class="live-stat">
+            <span class="stat-icon">⏱️</span>
+            <span id="stat-time">00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROL BUTTONS -->
+      <div class="controls">
+        <button id="btn-start" class="btn-main btn-go">
+          <span>🦮</span> Iniciar Paseo
+        </button>
+        <button id="btn-stop" class="btn-main btn-stop hidden">
+          <span>🏁</span> Terminar Paseo
+        </button>
+      </div>
+
+      <!-- HISTORY -->
+      <section class="history-section">
+        <h3>🗓️ Paseos anteriores</h3>
+        <div id="history-list">
+          <div class="empty-history">
+            <span>🌿</span>
+            <p>Aún no hay paseos registrados</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="home">🏠<span>Inicio</span></button>
+      <button class="nav-btn" data-page="history">📋<span>Historial</span></button>
+      <button class="nav-btn" data-page="profile">🐶<span>Perfil</span></button>
+    </nav>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="modal-profile" class="modal hidden">
+    <div class="modal-box">
+      <button class="modal-close" id="close-profile">✕</button>
+      <h2>🐶 Perfil de tu perro</h2>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="input-name" placeholder="Ej: Luna, Max, Coco..." maxlength="20"/>
+      </div>
+      <div class="form-group">
+        <label>Raza</label>
+        <input type="text" id="input-breed" placeholder="Ej: Labrador, Mestizo..." maxlength="30"/>
+      </div>
+      <div class="form-group">
+        <label>Elige un avatar</label>
+        <div class="avatar-picker">
+          <span class="avatar-opt" data-emoji="🐕">🐕</span>
+          <span class="avatar-opt" data-emoji="🐩">🐩</span>
+          <span class="avatar-opt" data-emoji="🦮">🦮</span>
+          <span class="avatar-opt" data-emoji="🐶">🐶</span>
+          <span class="avatar-opt" data-emoji="🐾">🐾</span>
+          <span class="avatar-opt" data-emoji="🦴">🦴</span>
+        </div>
+      </div>
+      <button id="btn-save-profile" class="btn-save">Guardar 💾</button>
+    </div>
+  </div>
+
+  <!-- WALK SUMMARY MODAL -->
+  <div id="modal-summary" class="modal hidden">
+    <div class="modal-box summary-box">
+      <h2>🎉 ¡Paseo completado!</h2>
+      <div class="summary-stats">
+        <div class="sum-stat">
+          <span class="sum-icon">📏</span>
+          <span id="sum-dist">0.00 km</span>
+          <label>Distancia</label>
+        </div>
+        <div class="sum-stat">
+          <span class="sum-icon">⏱️</span>
+          <span id="sum-time">00:00</span>
+          <label>Duración</label>
+        </div>
+        <div class="sum-stat">
+          <span class="sum-icon">📍</span>
+          <span id="sum-points">0</span>
+          <label>Puntos GPS</label>
+        </div>
+      </div>
+      <button id="btn-close-summary" class="btn-save">¡Genial! 🐾</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
