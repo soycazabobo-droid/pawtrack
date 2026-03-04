@@ -686,36 +686,51 @@ function dogIcon(){
   return L.divIcon({html:html,iconSize:[40,40],iconAnchor:[20,20],className:''});
 }
 
+function onGpsPos(pos){
+  var lat=pos.coords.latitude, lng=pos.coords.longitude;
+  var pt={lat:lat,lng:lng};
+  if(pts.length>0) dist+=hav(pts[pts.length-1],pt);
+  pts.push(pt);
+  var ed=gid('s-dist'); if(ed) ed.textContent=dist.toFixed(2)+' km';
+  if(routeLine) routeLine.addLatLng([lat,lng]);
+  if(map) map.setView([lat,lng],16);
+  if(uMarker) uMarker.setLatLng([lat,lng]);
+  else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
+  if(walkId) sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
+}
+function onGpsErr(err){
+  if(err.code===1) alert('Permiso de ubicacion denegado.\nAbre ajustes del navegador y permite la ubicacion para este sitio.');
+  else if(err.code===3) console.log('GPS timeout, reintentando...');
+}
 function resumeWalk(){
-  if(!navigator.geolocation||!walkId) return;
+  if(!navigator.geolocation){ alert('Tu navegador no soporta GPS'); return; }
+  if(!walkId) return;
   pts=[]; dist=0; t0=Date.now();
   tmrId=setInterval(function(){ var e=gid('s-time'); if(e) e.textContent=fmtT(Date.now()-t0); },1000);
-  gpsId=navigator.geolocation.watchPosition(function(pos){
-    var lat=pos.coords.latitude, lng=pos.coords.longitude;
-    var pt={lat:lat,lng:lng};
-    if(pts.length>0) dist+=hav(pts[pts.length-1],pt);
-    pts.push(pt);
-    var ed=gid('s-dist'); if(ed) ed.textContent=dist.toFixed(2)+' km';
-    if(routeLine) routeLine.addLatLng([lat,lng]);
-    if(map) map.panTo([lat,lng]);
-    if(uMarker) uMarker.setLatLng([lat,lng]);
-    else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
-    if(walkId) sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
-  },function(err){ if(err.code===1) alert('Activa el GPS 📍'); },
-  {enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+  // Pedir ubicacion inmediata primero para mostrar punto rapido
+  navigator.geolocation.getCurrentPosition(function(pos){
+    onGpsPos(pos);
+    // Luego activar el seguimiento continuo
+    gpsId=navigator.geolocation.watchPosition(onGpsPos, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  }, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
 }
 
 function stopWalk(){
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
-  clearInterval(tmrId);
-  var dur=Date.now()-t0;
-  if(walkId) sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',walkId);
-  var sd=gid('s-dist'); if(sd) sd.textContent=dist.toFixed(2)+' km';
-  var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
-  var sp=gid('s-pts'); if(sp) sp.textContent=pts.length;
+  clearInterval(tmrId); tmrId=null;
+  var dur=t0 ? Date.now()-t0 : 0;
+  var wid=walkId;
+  walkId=null; // limpiar ANTES de go('home') para que no recargue el paseo
+  pts=[]; dist=0; t0=null;
+  if(wid){
+    sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',wid);
+  }
+  // Mostrar resumen
+  gid('s-dist').textContent=dist.toFixed(2)+' km';
+  gid('s-time').textContent=fmtT(dur);
+  gid('s-pts').textContent=pts.length;
   openModal('m-sum');
-  walkId=null;
 }
 
 function showShare(){
