@@ -80,10 +80,13 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* MAP */
-.map-wrap{border-radius:var(--r);overflow:hidden;height:260px;position:relative;box-shadow:var(--shadow);}
+.map-wrap{border-radius:var(--r);overflow:hidden;height:300px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.22);border:2px solid rgba(255,107,53,.18);}
 #map{height:100%;width:100%;}
-.map-hud{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-radius:40px;padding:7px 18px;display:flex;gap:20px;box-shadow:0 4px 16px rgba(0,0,0,.15);}
-.hud-s{display:flex;align-items:center;gap:5px;font-weight:800;font-size:14px;}
+.map-hud{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(15,15,20,.82);backdrop-filter:blur(10px);border-radius:40px;padding:9px 22px;display:flex;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1);}
+.hud-s{display:flex;align-items:center;gap:6px;font-weight:800;font-size:15px;color:#fff;}
+.hud-s .hud-val{color:#FF6B35;font-size:16px;font-weight:900;}
+.map-status-badge{position:absolute;top:12px;left:12px;z-index:999;background:rgba(15,15,20,.82);backdrop-filter:blur(8px);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.1);}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#4CAF7D;animation:pulse 1s infinite;}
 
 /* CONTROLS */
 .ctrls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
@@ -524,9 +527,10 @@ async function renderWalkerHome(m){
     </div>
     ${activeWalk?`
     <div class="map-wrap"><div id="map"></div>
+      <div class="map-status-badge"><span class="live-dot"></span>EN VIVO</div>
       <div class="map-hud" id="map-hud" style="display:flex">
-        <div class="hud-s">📍 <span id="s-dist">0.00 km</span></div>
-        <div class="hud-s">⏱️ <span id="s-time">00:00</span></div>
+        <div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>
+        <div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>
       </div>
     </div>
     <div class="ctrls">
@@ -662,7 +666,9 @@ async function watchWalk(wId){
       <button onclick="go('home')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">← Volver</button>
       <span style="font-weight:800;color:var(--orange)">📡 Paseo en vivo</span>
     </div>
-    <div class="map-wrap" style="height:420px"><div id="map"></div></div>`;
+    <div class="map-wrap" style="height:420px"><div id="map"></div>
+      <div class="map-status-badge"><span class="live-dot"></span>SEGUIMIENTO EN VIVO</div>
+    </div>`;
   setTimeout(async()=>{
     initMap();
     const {data:gps}=await sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at');
@@ -688,9 +694,9 @@ function initMap(lat=-34.603,lng=-58.381){
   if(map){map.remove();map=null;uMarker=null;}
   const el=$('map'); if(!el) return;
   map=L.map('map',{zoomControl:false}).setView([lat,lng],13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
-  routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:.85}).addTo(map);
+  routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1,dashArray:null}).addTo(map);
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(
       p=>{
@@ -710,7 +716,14 @@ function initMap(lat=-34.603,lng=-58.381){
 }
 function dogIcon(){
   const av=dogs[0]?.avatar||'🐕';
-  return L.divIcon({html:`<div style="font-size:26px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))">${av}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''});
+  return L.divIcon({
+    html:`<div style="position:relative;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(255,107,53,.25);animation:pulse 1.5s infinite;"></div>
+      <div style="position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,107,53,.4);"></div>
+      <div style="position:relative;font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));z-index:1">${av}</div>
+    </div>`,
+    iconSize:[44,44],iconAnchor:[22,22],className:''
+  });
 }
 
 function resumeWalk(){
