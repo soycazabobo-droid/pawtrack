@@ -495,7 +495,7 @@ async function openReqModal(walkerId){
   $('req-dog').innerHTML=myDogs.length
     ? myDogs.map(d=>`<option value="${d.id}">${d.avatar} ${d.name} (${d.breed||'sin raza'})</option>`).join('')
     : '<option value="">No tienes perros aún</option>';
-  const now=new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
   $('req-date').value=now.toISOString().slice(0,16);
   om('m-req');
 }
@@ -543,7 +543,7 @@ async function renderWalkerHome(m){
             <div class="li-info">
               <strong>${r.profiles?.full_name||'Dueño'}</strong>
               <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'} · ${r.dogs?.breed||''}</span>
-              <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span>
+              <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}):''}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button class="btn-accept" onclick="respondReq('${r.id}','accepted','${r.dog_id}')">✅ Aceptar</button>
@@ -581,7 +581,7 @@ async function renderWalkerWalks(m){
   el.innerHTML=data.map(w=>`
     <div class="li">
       <div class="li-av">${w.dogs?.photo_url?`<img src="${w.dogs.photo_url}">`:(w.dogs?.avatar||'🐕')}</div>
-      <div class="li-info"><strong>${w.dogs?.name||'Perro'}</strong><span>Iniciado: ${new Date(w.started_at).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="li-info"><strong>${w.dogs?.name||'Perro'}</strong><span>Iniciado: ${new Date(w.started_at).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</span></div>
       <button class="btn-watch" onclick="startActiveWalk('${w.id}')">📍 GPS</button>
     </div>`).join('');
 }
@@ -622,7 +622,7 @@ async function renderRequests(m){
       <div class="li-info">
         <strong>${other?.full_name||'Usuario'}</strong>
         <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'}</span>
-        <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span>
+        <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}):''}</span>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
         <span class="status-pill ${statusMap[r.status]||''}">${statusLbl[r.status]||r.status}</span>
@@ -691,7 +691,22 @@ function initMap(lat=-34.603,lng=-58.381){
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:.85}).addTo(map);
-  if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15),()=>map.setView([lat,lng],13),{timeout:5000});
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      p=>{
+        map.setView([p.coords.latitude,p.coords.longitude],15);
+        if(!uMarker) uMarker=L.marker([p.coords.latitude,p.coords.longitude],{icon:L.divIcon({html:'<div style="font-size:22px">📍</div>',iconSize:[28,28],iconAnchor:[14,14],className:''})}).addTo(map);
+      },
+      err=>{
+        // Sin GPS: mostrar Buenos Aires con aviso
+        map.setView([lat,lng],13);
+        const warn=L.control({position:'topright'});
+        warn.onAdd=()=>{const d=document.createElement('div');d.style.cssText='background:rgba(255,107,53,.9);color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;font-family:Nunito,sans-serif';d.textContent='📍 Activá el GPS para ver tu ubicación';return d;};
+        warn.addTo(map);
+      },
+      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+    );
+  }
 }
 function dogIcon(){
   const av=dogs[0]?.avatar||'🐕';
