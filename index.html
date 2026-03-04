@@ -894,21 +894,39 @@ async function submitRating(){
 // ==========================================
 window.addEventListener('DOMContentLoaded',async()=>{
   const watchParam=new URLSearchParams(location.search).get('watch');
-  setTimeout(async()=>{
-    const splash=$('splash');
-    splash.classList.add('out');
-    setTimeout(async()=>{
-      splash.style.display='none';
-      const {data:{session}}=await sb.auth.getSession();
-      if(session){await initApp(session.user);if(watchParam)watchWalk(watchParam);}
-      else om('auth');
-    },600);
-  },2200);
 
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(event==='SIGNED_IN'&&session){await initApp(session.user);}
-    else if(event==='SIGNED_OUT'){$('app').classList.add('hidden');om('auth');}
+    else if(event==='SIGNED_OUT'){
+      $('app').classList.add('hidden');
+      $('auth').classList.remove('hidden');
+    }
   });
+
+  // Esperar splash y luego verificar sesión
+  setTimeout(async()=>{
+    const splash=$('splash');
+    splash.classList.add('out');
+    await new Promise(r=>setTimeout(r,650));
+    splash.style.display='none';
+    splash.style.visibility='hidden';
+    try {
+      const {data:{session}}=await sb.auth.getSession();
+      if(session){
+        await initApp(session.user);
+        if(watchParam) watchWalk(watchParam);
+      } else {
+        // Mostrar auth con seguridad
+        $('app').classList.add('hidden');
+        $('auth').classList.remove('hidden');
+        $('auth').style.display='flex';
+      }
+    } catch(e){
+      console.error('Error al iniciar:', e);
+      $('auth').classList.remove('hidden');
+      $('auth').style.display='flex';
+    }
+  }, 2000);
 });
 </script>
 </body>
