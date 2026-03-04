@@ -1,200 +1,223 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PawTrack 🐾</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    :root {
-      --orange:#FF6B35;--orange-light:#FF8C5A;--yellow:#FFD23F;
-      --green:#4CAF7D;--green-dark:#3a9165;--red:#FF4757;
-      --bg:#FFF8F0;--text:#2D2D2D;--text-soft:#888;
-      --shadow:0 4px 20px rgba(0,0,0,0.08);--radius:20px;
-      --header-h:64px;--nav-h:70px;
-    }
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
-    .hidden{display:none!important;}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PawTrack 🐾</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--orange:#FF6B35;--orange-light:#FF8C5A;--yellow:#FFD23F;--green:#4CAF7D;--green-dark:#3a9165;--red:#FF4757;--blue:#3b82f6;--bg:#FFF8F0;--text:#2D2D2D;--soft:#888;--shadow:0 4px 20px rgba(0,0,0,.08);--r:20px;--hh:64px;--nh:70px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+.hidden{display:none!important;}
+img.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 
-    /* SPLASH */
-    #splash{position:fixed;inset:0;background:linear-gradient(135deg,#FF6B35,#FFD23F);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s,transform .6s;}
-    #splash.fade-out{opacity:0;transform:scale(1.05);pointer-events:none;}
-    .splash-inner{text-align:center;color:white;}
-    .paw-logo{font-size:72px;animation:bounce 1s infinite alternate;display:block;}
-    @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-16px)}}
-    .splash-inner h1{font-family:'Fredoka One',cursive;font-size:48px;letter-spacing:2px;margin:8px 0 4px;}
-    .splash-inner p{font-size:16px;opacity:.9;font-weight:600;}
-    .loading-dots{margin-top:24px;display:flex;gap:8px;justify-content:center;}
-    .loading-dots span{width:10px;height:10px;background:white;border-radius:50%;animation:dp 1s infinite;}
-    .loading-dots span:nth-child(2){animation-delay:.2s}.loading-dots span:nth-child(3){animation-delay:.4s}
-    @keyframes dp{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+/* SPLASH */
+#splash{position:fixed;inset:0;background:linear-gradient(135deg,#FF6B35,#FFD23F);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s,transform .6s;}
+#splash.out{opacity:0;transform:scale(1.05);pointer-events:none;}
+.splash-inner{text-align:center;color:#fff;}
+.paw-logo{font-size:72px;animation:bonce 1s infinite alternate;display:block;}
+@keyframes bonce{from{transform:translateY(0)}to{transform:translateY(-14px)}}
+.splash-inner h1{font-family:'Fredoka One',cursive;font-size:48px;letter-spacing:2px;margin:8px 0 4px;}
+.splash-inner p{font-size:16px;opacity:.9;font-weight:600;}
+.dots{margin-top:24px;display:flex;gap:8px;justify-content:center;}
+.dots span{width:10px;height:10px;background:#fff;border-radius:50%;animation:dp 1s infinite;}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
 
-    /* AUTH */
-    #auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#FFF8F0,#FFE8D6);}
-    .auth-logo{font-size:56px;margin-bottom:8px;}
-    .auth-title{font-family:'Fredoka One',cursive;font-size:36px;color:var(--orange);margin-bottom:4px;}
-    .auth-subtitle{color:var(--text-soft);font-weight:600;margin-bottom:32px;font-size:15px;}
-    .auth-box{background:white;border-radius:28px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(255,107,53,.15);}
-    .auth-tabs{display:flex;gap:8px;margin-bottom:24px;background:var(--bg);border-radius:14px;padding:4px;}
-    .auth-tab{flex:1;padding:10px;border:none;border-radius:10px;background:none;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--text-soft);transition:all .2s;}
-    .auth-tab.active{background:white;color:var(--orange);box-shadow:0 2px 8px rgba(0,0,0,.08);}
-    .form-group{margin-bottom:16px;}
-    .form-group label{display:block;font-weight:800;font-size:12px;margin-bottom:6px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.5px;}
-    .form-group input{width:100%;padding:12px 16px;border:2px solid #eee;border-radius:14px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:600;outline:none;transition:border .2s;}
-    .form-group input:focus{border-color:var(--orange);}
-    .role-picker{display:flex;gap:10px;}
-    .role-card{flex:1;padding:16px 8px;border:2px solid #eee;border-radius:16px;text-align:center;cursor:pointer;transition:all .2s;background:white;}
-    .role-card.selected{border-color:var(--orange);background:#FFF3EE;}
-    .role-card .role-icon{font-size:28px;display:block;margin-bottom:6px;}
-    .role-card .role-name{font-weight:800;font-size:13px;}
-    .role-card .role-desc{font-size:11px;color:var(--text-soft);margin-top:2px;}
-    .btn-auth{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:white;border:none;border-radius:16px;padding:14px;font-size:17px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:8px;box-shadow:0 4px 16px rgba(255,107,53,.4);transition:transform .15s;}
-    .btn-auth:hover{transform:translateY(-2px);}
-    .btn-google{width:100%;background:white;color:var(--text);border:2px solid #eee;border-radius:16px;padding:12px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;transition:border .2s;}
-    .btn-google:hover{border-color:var(--orange);}
-    .divider{text-align:center;color:var(--text-soft);font-size:13px;font-weight:600;margin:14px 0;position:relative;}
-    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:#eee;}
-    .divider::before{left:0}.divider::after{right:0}
-    .auth-error{background:#FFF0F0;color:var(--red);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;display:none;}
+/* AUTH */
+#auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#FFF8F0,#FFE8D6);}
+.auth-logo{font-size:56px;}.auth-title{font-family:'Fredoka One',cursive;font-size:36px;color:var(--orange);margin:4px 0;}
+.auth-sub{color:var(--soft);font-weight:600;margin-bottom:28px;font-size:15px;}
+.auth-box{background:#fff;border-radius:28px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(255,107,53,.15);}
+.tabs{display:flex;gap:6px;margin-bottom:22px;background:var(--bg);border-radius:14px;padding:4px;}
+.tab{flex:1;padding:10px;border:none;border-radius:10px;background:none;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--soft);transition:all .2s;}
+.tab.active{background:#fff;color:var(--orange);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-weight:800;font-size:11px;margin-bottom:5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;}
+.fg input,.fg textarea,.fg select{width:100%;padding:11px 14px;border:2px solid #eee;border-radius:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:600;outline:none;transition:border .2s;background:#fff;color:var(--text);}
+.fg input:focus,.fg textarea:focus{border-color:var(--orange);}
+.fg textarea{resize:none;height:72px;}
+.role-pick{display:flex;gap:10px;}
+.rc{flex:1;padding:14px 8px;border:2px solid #eee;border-radius:16px;text-align:center;cursor:pointer;transition:all .2s;background:#fff;}
+.rc.sel{border-color:var(--orange);background:#FFF3EE;}
+.rc .ri{font-size:26px;display:block;margin-bottom:5px;}
+.rc .rn{font-weight:800;font-size:13px;}
+.rc .rd{font-size:11px;color:var(--soft);margin-top:2px;}
+.btn-auth{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:15px;padding:14px;font-size:17px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(255,107,53,.4);transition:transform .15s;}
+.btn-auth:hover{transform:translateY(-2px);}
+.btn-google{width:100%;background:#fff;color:var(--text);border:2px solid #eee;border-radius:15px;padding:11px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;transition:border .2s;}
+.btn-google:hover{border-color:var(--orange);}
+.divider{text-align:center;color:var(--soft);font-size:13px;font-weight:600;margin:12px 0;position:relative;}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:38%;height:1px;background:#eee;}
+.divider::before{left:0}.divider::after{right:0}
+.err{background:#FFF0F0;color:var(--red);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;display:none;}
 
-    /* APP */
-    #app{display:flex;flex-direction:column;min-height:100vh;}
-    header{position:sticky;top:0;z-index:100;height:var(--header-h);background:white;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 2px 12px rgba(255,107,53,.12);}
-    .header-left{display:flex;align-items:center;gap:8px;}
-    .logo-icon{font-size:28px;}
-    .logo-text{font-family:'Fredoka One',cursive;font-size:24px;color:var(--orange);letter-spacing:1px;}
-    .header-right{display:flex;gap:8px;align-items:center;}
-    .role-badge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:white;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;}
-    .icon-btn{background:var(--bg);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;transition:transform .2s;}
-    .icon-btn:hover{transform:scale(1.1);background:#ffe8dc;}
-    main{flex:1;padding:16px 16px calc(var(--nav-h)+16px);display:flex;flex-direction:column;gap:16px;}
+/* APP */
+#app{display:flex;flex-direction:column;min-height:100vh;}
+header{position:sticky;top:0;z-index:100;height:var(--hh);background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 2px 12px rgba(255,107,53,.1);}
+.h-left{display:flex;align-items:center;gap:8px;}
+.logo-t{font-family:'Fredoka One',cursive;font-size:24px;color:var(--orange);}
+.h-right{display:flex;gap:8px;align-items:center;}
+.rbadge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;}
+.ibtn{background:var(--bg);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;transition:transform .2s;}
+.ibtn:hover{transform:scale(1.1);background:#ffe8dc;}
+main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:column;gap:14px;}
 
-    /* CARDS */
-    .dog-card{background:linear-gradient(135deg,#FF6B35,#FFD23F);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:14px;color:white;box-shadow:0 6px 24px rgba(255,107,53,.35);position:relative;overflow:hidden;}
-    .dog-card::before{content:'🐾';position:absolute;right:-10px;bottom:-16px;font-size:80px;opacity:.15;}
-    .dog-avatar{font-size:44px;background:rgba(255,255,255,.25);border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-    .dog-info{flex:1;}
-    .dog-info h2{font-size:20px;font-weight:800;}
-    .dog-info p{font-size:13px;opacity:.85;margin-top:2px;}
-    .dog-status{background:rgba(255,255,255,.25);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;}
-    .dot{width:8px;height:8px;border-radius:50%;}
-    .dot.idle{background:white;}
-    .dot.active{background:#7fff7f;animation:pulse 1s infinite;}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* CARDS */
+.hero-card{background:linear-gradient(135deg,#FF6B35,#FFD23F);border-radius:var(--r);padding:18px;display:flex;align-items:center;gap:14px;color:#fff;box-shadow:0 6px 24px rgba(255,107,53,.35);position:relative;overflow:hidden;}
+.hero-card::after{content:'🐾';position:absolute;right:-8px;bottom:-14px;font-size:76px;opacity:.15;}
+.hc-avatar{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;overflow:hidden;}
+.hc-info{flex:1;}
+.hc-info h2{font-size:19px;font-weight:800;}
+.hc-info p{font-size:13px;opacity:.85;margin-top:2px;}
+.hc-badge{background:rgba(255,255,255,.25);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.dot{width:8px;height:8px;border-radius:50%;}
+.dot.idle{background:#fff;}.dot.on{background:#7fff7f;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-    /* MAP */
-    .map-container{border-radius:var(--radius);overflow:hidden;height:280px;position:relative;box-shadow:var(--shadow);}
-    #map{height:100%;width:100%;}
-    .map-overlay-info{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-radius:40px;padding:8px 20px;display:flex;gap:24px;box-shadow:0 4px 16px rgba(0,0,0,.15);}
-    .live-stat{display:flex;align-items:center;gap:6px;font-weight:800;font-size:15px;}
+/* MAP */
+.map-wrap{border-radius:var(--r);overflow:hidden;height:260px;position:relative;box-shadow:var(--shadow);}
+#map{height:100%;width:100%;}
+.map-hud{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-radius:40px;padding:7px 18px;display:flex;gap:20px;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.hud-s{display:flex;align-items:center;gap:5px;font-weight:800;font-size:14px;}
 
-    /* CONTROLS */
-    .controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
-    .btn-main{border:none;border-radius:50px;padding:14px 28px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s;}
-    .btn-main:active{transform:scale(.96);}
-    .btn-go{background:linear-gradient(135deg,var(--green),var(--green-dark));color:white;box-shadow:0 6px 20px rgba(76,175,125,.45);}
-    .btn-stop{background:linear-gradient(135deg,var(--red),#c0392b);color:white;box-shadow:0 6px 20px rgba(255,71,87,.4);}
-    .btn-share{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;box-shadow:0 6px 20px rgba(59,130,246,.4);font-size:14px;padding:12px 18px;}
+/* CONTROLS */
+.ctrls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
+.btn-m{border:none;border-radius:50px;padding:13px 26px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s;}
+.btn-m:active{transform:scale(.96);}
+.go{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;box-shadow:0 5px 18px rgba(76,175,125,.45);}
+.stop{background:linear-gradient(135deg,var(--red),#c0392b);color:#fff;box-shadow:0 5px 18px rgba(255,71,87,.4);}
+.share-btn{background:linear-gradient(135deg,var(--blue),#1d4ed8);color:#fff;font-size:14px;padding:11px 16px;}
 
-    /* PANELS */
-    .panel{background:white;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
-    .panel h3{font-size:16px;font-weight:800;margin-bottom:14px;}
-    .empty-state{text-align:center;padding:24px;color:var(--text-soft);}
-    .empty-state span{font-size:36px;display:block;margin-bottom:8px;}
+/* PANEL */
+.panel{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--shadow);}
+.panel h3{font-size:15px;font-weight:800;margin-bottom:13px;}
+.empty{text-align:center;padding:22px;color:var(--soft);}
+.empty span{font-size:34px;display:block;margin-bottom:8px;}
+.empty p{font-size:14px;font-weight:600;}
 
-    /* LIST ITEMS */
-    .list-item{background:var(--bg);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px;animation:si .3s ease;}
-    @keyframes si{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    .list-item-icon{font-size:30px;background:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-    .list-item-info{flex:1;}
-    .list-item-info strong{display:block;font-size:14px;font-weight:800;}
-    .list-item-info span{font-size:12px;color:var(--text-soft);}
-    .list-item-badge{background:white;border-radius:12px;padding:6px 12px;font-size:13px;font-weight:800;color:var(--orange);}
-    .btn-watch{background:var(--orange);color:white;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+/* LIST ITEMS */
+.li{background:var(--bg);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:9px;animation:slin .3s ease;}
+@keyframes slin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.li-av{width:48px;height:48px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:2px solid #eee;}
+.li-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.li-info{flex:1;min-width:0;}
+.li-info strong{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.li-info span{font-size:12px;color:var(--soft);}
+.li-badge{background:#fff;border-radius:11px;padding:5px 11px;font-size:12px;font-weight:800;color:var(--orange);white-space:nowrap;}
 
-    .btn-add{width:100%;background:var(--bg);border:2px dashed #FFB89A;border-radius:16px;padding:14px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--orange);cursor:pointer;transition:background .2s;}
-    .btn-add:hover{background:#FFE8D6;}
+/* WALKER CARD */
+.walker-card{background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid transparent;transition:border .2s,box-shadow .2s;}
+.walker-card:hover{border-color:var(--orange);box-shadow:0 6px 24px rgba(255,107,53,.2);}
+.wc-photo{width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg);}
+.wc-photo img{width:100%;height:100%;object-fit:cover;}
+.wc-info{flex:1;}
+.wc-info h4{font-size:16px;font-weight:800;margin-bottom:2px;}
+.wc-info p{font-size:12px;color:var(--soft);margin-bottom:6px;}
+.wc-stars{color:#FFD23F;font-size:14px;}
+.wc-desc{font-size:12px;color:var(--soft);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.btn-req{background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
+.btn-accept{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-reject{background:#eee;color:var(--soft);border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-watch{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-add{width:100%;background:var(--bg);border:2px dashed #FFB89A;border-radius:15px;padding:13px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--orange);cursor:pointer;transition:background .2s;margin-top:4px;}
+.btn-add:hover{background:#FFE8D6;}
+.status-pill{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;}
+.sp-pending{background:#FFF3CD;color:#856404;}
+.sp-accepted{background:#D4EDDA;color:#155724;}
+.sp-rejected{background:#F8D7DA;color:#721C24;}
+.sp-completed{background:#D1ECF1;color:#0C5460;}
 
-    /* NAV */
-    .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:white;display:flex;box-shadow:0 -4px 20px rgba(0,0,0,.07);z-index:100;}
-    .nav-btn{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:22px;cursor:pointer;color:var(--text-soft);font-family:'Nunito',sans-serif;transition:color .2s,transform .2s;}
-    .nav-btn span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-    .nav-btn.active{color:var(--orange);transform:translateY(-2px);}
+/* NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:#fff;display:flex;box-shadow:0 -4px 20px rgba(0,0,0,.07);z-index:100;}
+.nbtn{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:21px;cursor:pointer;color:var(--soft);font-family:'Nunito',sans-serif;transition:color .2s,transform .2s;}
+.nbtn span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.nbtn.active{color:var(--orange);transform:translateY(-2px);}
 
-    /* MODALS */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:flex-end;justify-content:center;animation:fi .2s;}
-    @keyframes fi{from{opacity:0}to{opacity:1}}
-    .modal-box{background:white;border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;animation:su .3s cubic-bezier(.17,.67,.4,1.2);position:relative;}
-    @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
-    .modal-box h2{font-family:'Fredoka One',cursive;font-size:22px;color:var(--orange);margin-bottom:20px;text-align:center;}
-    .modal-close{position:absolute;top:16px;right:20px;background:var(--bg);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;font-weight:800;color:var(--text-soft);}
-    .avatar-picker{display:flex;gap:10px;flex-wrap:wrap;}
-    .avatar-opt{font-size:30px;padding:8px;border-radius:14px;cursor:pointer;background:var(--bg);transition:transform .15s;border:2px solid transparent;}
-    .avatar-opt.selected{border-color:var(--orange);background:#ffe8dc;transform:scale(1.15);}
-    .btn-save{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:white;border:none;border-radius:16px;padding:14px;font-size:17px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:20px;box-shadow:0 4px 16px rgba(255,107,53,.4);}
+/* MODALS */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:flex-end;justify-content:center;animation:fi .2s;}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.mbox{background:#fff;border-radius:28px 28px 0 0;padding:26px 22px 38px;width:100%;max-width:480px;animation:su .3s cubic-bezier(.17,.67,.4,1.2);position:relative;max-height:90vh;overflow-y:auto;}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mbox h2{font-family:'Fredoka One',cursive;font-size:21px;color:var(--orange);margin-bottom:18px;text-align:center;}
+.mclose{position:absolute;top:14px;right:18px;background:var(--bg);border:none;border-radius:50%;width:34px;height:34px;font-size:15px;cursor:pointer;font-weight:800;color:var(--soft);}
+.av-pick{display:flex;gap:8px;flex-wrap:wrap;}
+.av-opt{font-size:28px;padding:7px;border-radius:13px;cursor:pointer;background:var(--bg);transition:transform .15s;border:2px solid transparent;}
+.av-opt.sel{border-color:var(--orange);background:#ffe8dc;transform:scale(1.15);}
+.btn-save{width:100%;background:linear-gradient(135deg,var(--orange),var(--orange-light));color:#fff;border:none;border-radius:15px;padding:13px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;margin-top:18px;box-shadow:0 4px 16px rgba(255,107,53,.4);}
 
-    /* SUMMARY */
-    .summary-box{text-align:center;}
-    .summary-stats{display:flex;gap:12px;justify-content:center;margin:20px 0;}
-    .sum-stat{flex:1;background:var(--bg);border-radius:16px;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;}
-    .sum-stat span{font-size:20px;font-weight:800;}
-    .sum-stat label{font-size:11px;color:var(--text-soft);font-weight:700;text-transform:uppercase;}
-
-    .share-box{background:var(--bg);border-radius:14px;padding:14px;margin:12px 0;word-break:break-all;font-size:13px;font-weight:700;border:2px solid #FFB89A;}
-    .btn-copy{background:var(--orange);color:white;border:none;border-radius:12px;padding:10px 20px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;width:100%;margin-top:8px;}
-    .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-    @keyframes spin{to{transform:rotate(360deg)}}
-  </style>
+/* SUMMARY */
+.sum-stats{display:flex;gap:10px;justify-content:center;margin:18px 0;}
+.ss{flex:1;background:var(--bg);border-radius:15px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ss span{font-size:19px;font-weight:800;}
+.ss label{font-size:10px;color:var(--soft);font-weight:700;text-transform:uppercase;}
+.share-box{background:var(--bg);border-radius:13px;padding:13px;margin:10px 0;word-break:break-all;font-size:12px;font-weight:700;border:2px solid #FFB89A;}
+.btn-copy{background:var(--orange);color:#fff;border:none;border-radius:12px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;width:100%;margin-top:6px;}
+.spinner{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.section-title{font-size:16px;font-weight:800;margin-bottom:10px;}
+.photo-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--orange);margin:0 auto 10px;display:block;}
+</style>
 </head>
 <body>
 
+<!-- SPLASH -->
 <div id="splash">
   <div class="splash-inner">
     <div class="paw-logo">🐾</div>
     <h1>PawTrack</h1>
-    <p>Rastrea los paseos de tu peludo</p>
-    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <p>Conecta dueños y paseadores</p>
+    <div class="dots"><span></span><span></span><span></span></div>
   </div>
 </div>
 
-<div id="auth-screen" class="hidden">
+<!-- AUTH -->
+<div id="auth" class="hidden">
   <div class="auth-logo">🐾</div>
   <h1 class="auth-title">PawTrack</h1>
-  <p class="auth-subtitle">Rastrea los paseos de tu peludo</p>
+  <p class="auth-sub">Conecta dueños y paseadores</p>
   <div class="auth-box">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Iniciar sesión</button>
-      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrarse</button>
+    <div class="tabs">
+      <button class="tab active" id="tab-in" onclick="switchTab('in')">Iniciar sesión</button>
+      <button class="tab" id="tab-up" onclick="switchTab('up')">Registrarse</button>
     </div>
-    <div id="auth-error" class="auth-error"></div>
-    <div id="form-login">
-      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="tu@email.com"/></div>
-      <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••"/></div>
-      <button class="btn-auth" id="btn-login" onclick="doLogin()">Entrar 🐾</button>
+    <div id="auth-err" class="err"></div>
+
+    <!-- LOGIN -->
+    <div id="f-in">
+      <div class="fg"><label>Email</label><input type="email" id="li-email" placeholder="tu@email.com"/></div>
+      <div class="fg"><label>Contraseña</label><input type="password" id="li-pass" placeholder="••••••••"/></div>
+      <button class="btn-auth" id="btn-li" onclick="doLogin()">Entrar 🐾</button>
       <div class="divider">o</div>
-      <button class="btn-google" onclick="doGoogleLogin()">
+      <button class="btn-google" onclick="doGoogle()">
         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
         Continuar con Google
       </button>
     </div>
-    <div id="form-register" class="hidden">
-      <div class="form-group"><label>Tu nombre</label><input type="text" id="reg-name" placeholder="Ej: María García"/></div>
-      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="tu@email.com"/></div>
-      <div class="form-group"><label>Contraseña</label><input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"/></div>
-      <div class="form-group">
-        <label>¿Eres dueño o paseador?</label>
-        <div class="role-picker">
-          <div class="role-card selected" id="role-owner" onclick="selectRole('owner')"><span class="role-icon">🏠</span><div class="role-name">Dueño</div><div class="role-desc">Veo dónde está mi perro</div></div>
-          <div class="role-card" id="role-walker" onclick="selectRole('walker')"><span class="role-icon">🦮</span><div class="role-name">Paseador</div><div class="role-desc">Registro mis paseos</div></div>
+
+    <!-- REGISTER -->
+    <div id="f-up" class="hidden">
+      <div class="fg"><label>¿Eres dueño o paseador?</label>
+        <div class="role-pick">
+          <div class="rc sel" id="rc-owner" onclick="selRole('owner')"><span class="ri">🏠</span><div class="rn">Dueño</div><div class="rd">Busco paseadores</div></div>
+          <div class="rc" id="rc-walker" onclick="selRole('walker')"><span class="ri">🦮</span><div class="rn">Paseador</div><div class="rd">Ofrezco paseos</div></div>
         </div>
       </div>
-      <button class="btn-auth" id="btn-register" onclick="doRegister()">Crear cuenta 🐾</button>
+      <div class="fg"><label>Nombre completo</label><input type="text" id="ru-name" placeholder="Ej: María García"/></div>
+      <div class="fg"><label>Email</label><input type="email" id="ru-email" placeholder="tu@email.com"/></div>
+      <div class="fg"><label>Contraseña</label><input type="password" id="ru-pass" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="fg"><label>URL de tu foto de perfil</label><input type="url" id="ru-photo" placeholder="https://i.imgur.com/tu-foto.jpg"/></div>
+      <div id="ru-walker-fields" class="hidden">
+        <div class="fg"><label>Descripción (¿por qué eres buen paseador?)</label><textarea id="ru-desc" placeholder="Ej: Amo los perros, tengo 3 años de experiencia..."></textarea></div>
+        <div class="fg"><label>Teléfono / WhatsApp</label><input type="text" id="ru-phone" placeholder="+51 999 999 999"/></div>
+      </div>
+      <button class="btn-auth" id="btn-up" onclick="doRegister()">Crear cuenta 🐾</button>
       <div class="divider">o</div>
-      <button class="btn-google" onclick="doGoogleLogin()">
+      <button class="btn-google" onclick="doGoogle()">
         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
         Continuar con Google
       </button>
@@ -202,124 +225,144 @@
   </div>
 </div>
 
+<!-- APP -->
 <div id="app" class="hidden">
   <header>
-    <div class="header-left"><span class="logo-icon">🐾</span><span class="logo-text">PawTrack</span></div>
-    <div class="header-right">
-      <span class="role-badge" id="header-role">🏠 Dueño</span>
-      <button class="icon-btn" onclick="doLogout()" title="Salir">🚪</button>
+    <div class="h-left"><span style="font-size:26px">🐾</span><span class="logo-t">PawTrack</span></div>
+    <div class="h-right">
+      <span class="rbadge" id="h-role">🏠 Dueño</span>
+      <button class="ibtn" onclick="doLogout()">🚪</button>
     </div>
   </header>
-  <main id="main-content"></main>
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-page="home" onclick="navTo('home')">🏠<span>Inicio</span></button>
-    <button class="nav-btn" data-page="history" onclick="navTo('history')">📋<span>Historial</span></button>
-    <button class="nav-btn" data-page="profile" onclick="navTo('profile')">👤<span>Perfil</span></button>
+  <main id="main"></main>
+  <nav class="bnav">
+    <button class="nbtn active" data-p="home" onclick="go('home')">🏠<span>Inicio</span></button>
+    <button class="nbtn" data-p="walkers" onclick="go('walkers')" id="nav-walkers">🦮<span>Paseadores</span></button>
+    <button class="nbtn" data-p="requests" onclick="go('requests')">📋<span>Solicitudes</span></button>
+    <button class="nbtn" data-p="profile" onclick="go('profile')">👤<span>Perfil</span></button>
   </nav>
 </div>
 
-<!-- MODAL PERRO -->
-<div id="modal-dog" class="modal hidden">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('modal-dog')">✕</button>
-    <h2>🐶 Agregar perro</h2>
-    <div class="form-group"><label>Nombre</label><input type="text" id="dog-name-input" placeholder="Ej: Luna, Max..."/></div>
-    <div class="form-group"><label>Raza</label><input type="text" id="dog-breed-input" placeholder="Ej: Labrador..."/></div>
-    <div class="form-group">
-      <label>Avatar</label>
-      <div class="avatar-picker" id="avatar-picker-dog">
-        <span class="avatar-opt selected" data-emoji="🐕">🐕</span>
-        <span class="avatar-opt" data-emoji="🐩">🐩</span>
-        <span class="avatar-opt" data-emoji="🦮">🦮</span>
-        <span class="avatar-opt" data-emoji="🐶">🐶</span>
-        <span class="avatar-opt" data-emoji="🐾">🐾</span>
-        <span class="avatar-opt" data-emoji="🦴">🦴</span>
+<!-- MODAL AGREGAR PERRO -->
+<div id="m-dog" class="modal hidden">
+  <div class="mbox">
+    <button class="mclose" onclick="cm('m-dog')">✕</button>
+    <h2>🐶 Mi Perro</h2>
+    <div class="fg"><label>Nombre</label><input type="text" id="d-name" placeholder="Ej: Luna, Max..."/></div>
+    <div class="fg"><label>Raza</label><input type="text" id="d-breed" placeholder="Ej: Labrador, Mestizo..."/></div>
+    <div class="fg"><label>Edad (años)</label><input type="number" id="d-age" placeholder="3" min="0" max="20"/></div>
+    <div class="fg"><label>URL de foto del perro</label><input type="url" id="d-photo" placeholder="https://i.imgur.com/foto-perro.jpg"/></div>
+    <div class="fg"><label>Avatar (si no tienes foto)</label>
+      <div class="av-pick" id="av-dog">
+        <span class="av-opt sel" data-e="🐕">🐕</span><span class="av-opt" data-e="🐩">🐩</span>
+        <span class="av-opt" data-e="🦮">🦮</span><span class="av-opt" data-e="🐶">🐶</span>
+        <span class="av-opt" data-e="🐾">🐾</span><span class="av-opt" data-e="🦴">🦴</span>
       </div>
     </div>
     <button class="btn-save" onclick="saveDog()">Guardar 💾</button>
   </div>
 </div>
 
-<!-- MODAL RESUMEN -->
-<div id="modal-summary" class="modal hidden">
-  <div class="modal-box summary-box">
-    <h2>🎉 ¡Paseo completado!</h2>
-    <div class="summary-stats">
-      <div class="sum-stat"><span>📏</span><span id="sum-dist">0.00 km</span><label>Distancia</label></div>
-      <div class="sum-stat"><span>⏱️</span><span id="sum-time">00:00</span><label>Duración</label></div>
-      <div class="sum-stat"><span>📍</span><span id="sum-pts">0</span><label>Puntos GPS</label></div>
+<!-- MODAL SOLICITAR PASEADOR -->
+<div id="m-req" class="modal hidden">
+  <div class="mbox">
+    <button class="mclose" onclick="cm('m-req')">✕</button>
+    <h2>🦮 Solicitar Paseador</h2>
+    <div id="req-walker-info" style="text-align:center;margin-bottom:16px"></div>
+    <div class="fg"><label>¿Qué perro va a pasear?</label>
+      <select id="req-dog"></select>
     </div>
-    <button class="btn-save" onclick="closeModal('modal-summary')">¡Genial! 🐾</button>
+    <div class="fg"><label>Fecha y hora del paseo</label><input type="datetime-local" id="req-date"/></div>
+    <button class="btn-save" onclick="sendRequest()">Enviar solicitud 🐾</button>
+  </div>
+</div>
+
+<!-- MODAL RESUMEN -->
+<div id="m-sum" class="modal hidden">
+  <div class="mbox" style="text-align:center">
+    <h2>🎉 ¡Paseo completado!</h2>
+    <div class="sum-stats">
+      <div class="ss"><span id="s-dist">0 km</span><label>Distancia</label></div>
+      <div class="ss"><span id="s-time">00:00</span><label>Duración</label></div>
+      <div class="ss"><span id="s-pts">0</span><label>Puntos GPS</label></div>
+    </div>
+    <button class="btn-save" onclick="cm('m-sum')">¡Genial! 🐾</button>
   </div>
 </div>
 
 <!-- MODAL COMPARTIR -->
-<div id="modal-share" class="modal hidden">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('modal-share')">✕</button>
+<div id="m-share" class="modal hidden">
+  <div class="mbox">
+    <button class="mclose" onclick="cm('m-share')">✕</button>
     <h2>📡 Paseo en vivo</h2>
-    <p style="text-align:center;color:var(--text-soft);font-size:14px;margin-bottom:12px">Comparte este link para que vean dónde estás</p>
-    <div class="share-box" id="share-link-text">Generando...</div>
-    <button class="btn-copy" onclick="copyShareLink()">📋 Copiar link</button>
+    <p style="text-align:center;color:var(--soft);font-size:14px;margin-bottom:10px">Comparte este link con el dueño</p>
+    <div class="share-box" id="share-txt">...</div>
+    <button class="btn-copy" onclick="copyLink()">📋 Copiar link</button>
   </div>
 </div>
 
 <script>
-const SUPA_URL = 'https://vvszrrbxfmfwlrctjwsx.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const SB_URL='https://vvszrrbxfmfwlrctjwsx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
+const sb=supabase.createClient(SB_URL,SB_KEY);
 
-let currentUser=null, currentProfile=null;
-let map=null, routeLine=null, userMarker=null;
-let tracking=false, gpsWatchId=null;
-let routePoints=[], startTime=null, timerInterval=null;
-let totalDistance=0, currentWalkId=null;
-let selectedAvatar='🐕', selectedRole='owner';
-let currentDogs=[], realtimeChannel=null;
+let CU=null,CP=null; // current user / profile
+let map=null,routeLine=null,uMarker=null;
+let tracking=false,gpsId=null,tmrId=null;
+let pts=[],t0=null,dist=0,walkId=null;
+let dogAv='🐕',selRole_='owner';
+let dogs=[],reqWalker=null,rtCh=null;
 
 // ---- UTILS ----
-function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
-function showError(msg){ const e=document.getElementById('auth-error'); e.textContent=msg; e.style.display='block'; }
-function clearError(){ document.getElementById('auth-error').style.display='none'; }
-function haversine(a,b){ const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2; return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)); }
-function formatTime(ms){ const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60); return h>0?`${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+const $=id=>document.getElementById(id);
+const cm=id=>$(id).classList.add('hidden');
+const om=id=>$(id).classList.remove('hidden');
+function showErr(m){const e=$('auth-err');e.textContent=m;e.style.display='block';}
+function clrErr(){$('auth-err').style.display='none';}
+function hav(a,b){const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dLa/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+function fmtT(ms){const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);return h>0?`${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
+function stars(n){return '⭐'.repeat(Math.round(n||5));}
+function photoOrEmoji(url,emoji,cls=''){
+  if(url) return `<img src="${url}" class="${cls}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  return `<span>${emoji||'🐕'}</span>`;
+}
 
 // ---- AUTH ----
-function switchTab(tab){
-  ['login','register'].forEach(t=>{
-    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
-    document.getElementById('form-'+t).classList.toggle('hidden',t!==tab);
-  });
-  clearError();
+function switchTab(t){
+  $('tab-in').classList.toggle('active',t==='in');
+  $('tab-up').classList.toggle('active',t==='up');
+  $('f-in').classList.toggle('hidden',t!=='in');
+  $('f-up').classList.toggle('hidden',t!=='up');
+  clrErr();
 }
-function selectRole(role){
-  selectedRole=role;
-  document.getElementById('role-owner').classList.toggle('selected',role==='owner');
-  document.getElementById('role-walker').classList.toggle('selected',role==='walker');
+function selRole(r){
+  selRole_=r;
+  $('rc-owner').classList.toggle('sel',r==='owner');
+  $('rc-walker').classList.toggle('sel',r==='walker');
+  $('ru-walker-fields').classList.toggle('hidden',r!=='walker');
 }
 async function doLogin(){
-  const email=document.getElementById('login-email').value.trim();
-  const pass=document.getElementById('login-password').value;
-  if(!email||!pass) return showError('Completa todos los campos');
-  const btn=document.getElementById('btn-login');
-  btn.innerHTML='<span class="spinner"></span>Entrando...'; btn.disabled=true;
+  const email=$('li-email').value.trim(),pass=$('li-pass').value;
+  if(!email||!pass) return showErr('Completa todos los campos');
+  const btn=$('btn-li'); btn.innerHTML='<span class="spinner"></span>Entrando...'; btn.disabled=true;
   const {error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){ showError('Email o contraseña incorrectos'); btn.innerHTML='Entrar 🐾'; btn.disabled=false; }
+  if(error){showErr('Email o contraseña incorrectos');btn.innerHTML='Entrar 🐾';btn.disabled=false;}
 }
 async function doRegister(){
-  const name=document.getElementById('reg-name').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const pass=document.getElementById('reg-password').value;
-  if(!name||!email||!pass) return showError('Completa todos los campos');
-  if(pass.length<6) return showError('Contraseña mínimo 6 caracteres');
-  const btn=document.getElementById('btn-register');
-  btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,role:selectedRole}}});
-  if(error){ showError(error.message); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
-  if(data.user) await sb.from('profiles').upsert({id:data.user.id,full_name:name,role:selectedRole});
-  showError('✅ Revisa tu email para confirmar tu cuenta');
+  const name=$('ru-name').value.trim(),email=$('ru-email').value.trim(),pass=$('ru-pass').value;
+  const photo=$('ru-photo').value.trim(),desc=$('ru-desc').value.trim(),phone=$('ru-phone').value.trim();
+  if(!name||!email||!pass) return showErr('Completa nombre, email y contraseña');
+  if(pass.length<6) return showErr('Contraseña mínimo 6 caracteres');
+  const btn=$('btn-up'); btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,role:selRole_}}});
+  if(error){showErr(error.message);btn.innerHTML='Crear cuenta 🐾';btn.disabled=false;return;}
+  if(data.user){
+    await sb.from('profiles').upsert({id:data.user.id,full_name:name,role:selRole_,photo_url:photo||null,description:desc||null,phone:phone||null});
+  }
+  showErr('✅ Revisa tu email para confirmar tu cuenta');
+  btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false;
 }
-async function doGoogleLogin(){
+async function doGoogle(){
   await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
 }
 async function doLogout(){
@@ -328,284 +371,404 @@ async function doLogout(){
 }
 
 // ---- PROFILE ----
-async function loadOrCreateProfile(user){
+async function loadProfile(user){
   let {data}=await sb.from('profiles').select('*').eq('id',user.id).single();
   if(!data){
-    const role=user.user_metadata?.role||'owner';
-    const name=user.user_metadata?.full_name||user.email;
-    await sb.from('profiles').insert({id:user.id,full_name:name,role});
+    const r=user.user_metadata?.role||'owner';
+    const n=user.user_metadata?.full_name||user.email;
+    await sb.from('profiles').insert({id:user.id,full_name:n,role:r,photo_url:user.user_metadata?.avatar_url||null});
     ({data}=await sb.from('profiles').select('*').eq('id',user.id).single());
   }
   return data;
 }
 
-// ---- INIT APP ----
+// ---- INIT ----
 async function initApp(user){
-  currentUser=user;
-  currentProfile=await loadOrCreateProfile(user);
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  document.getElementById('header-role').textContent=currentProfile.role==='owner'?'🏠 Dueño':'🦮 Paseador';
-  navTo('home');
+  CU=user; CP=await loadProfile(user);
+  $('auth').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('h-role').textContent=CP.role==='owner'?'🏠 Dueño':'🦮 Paseador';
+  // Ajustar nav según rol
+  if(CP.role==='walker'){
+    $('nav-walkers').querySelector('span').textContent='Paseos';
+    $('nav-walkers').querySelector(':first-child') && ($('nav-walkers').innerHTML='📍<span>Mis Paseos</span>');
+  }
+  go('home');
 }
 
 // ---- NAVIGATION ----
-function navTo(page){
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  const main=document.getElementById('main-content');
-  if(page==='home') renderHome(main);
-  else if(page==='history') renderHistory(main);
-  else if(page==='profile') renderProfilePage(main);
+function go(page){
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.toggle('active',b.dataset.p===page));
+  const m=$('main');
+  if(page==='home') CP.role==='owner'?renderOwnerHome(m):renderWalkerHome(m);
+  else if(page==='walkers') CP.role==='owner'?renderWalkersList(m):renderWalkerWalks(m);
+  else if(page==='requests') renderRequests(m);
+  else if(page==='profile') renderProfilePage(m);
 }
 
-// ---- HOME ----
-async function renderHome(main){
-  if(currentProfile.role==='walker') await renderWalkerHome(main);
-  else await renderOwnerHome(main);
-}
-
-async function renderWalkerHome(main){
-  const dogs=await fetchDogs();
-  const dog=dogs[0];
-  main.innerHTML=`
-    <div class="dog-card">
-      <div class="dog-avatar">${dog?dog.avatar:'🐕'}</div>
-      <div class="dog-info"><h2>${dog?dog.name:'Sin perro asignado'}</h2><p>${dog?dog.breed:'Agrega un perro primero'}</p></div>
-      <div class="dog-status" id="dog-status-badge"><span class="dot idle"></span> En casa</div>
-    </div>
-    <div class="map-container"><div id="map"></div>
-      <div class="map-overlay-info" id="live-info" style="display:none">
-        <div class="live-stat">📍 <span id="stat-dist">0.00 km</span></div>
-        <div class="live-stat">⏱️ <span id="stat-time">00:00</span></div>
+// ==========================================
+//   OWNER PAGES
+// ==========================================
+async function renderOwnerHome(m){
+  const myDogs=await getDogs();
+  const dog=myDogs[0];
+  m.innerHTML=`
+    <div class="hero-card">
+      <div class="hc-avatar">${dog?(dog.photo_url?`<img src="${dog.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:36px">${dog.avatar}</span>`):'<span style="font-size:36px">🐕</span>'}</div>
+      <div class="hc-info">
+        <h2>${dog?dog.name:'Mi Perro'}</h2>
+        <p>${dog?((dog.breed||'')+(dog.age?' · '+dog.age+' años':'')):'Agrega tu perro abajo'}</p>
       </div>
+      <div class="hc-badge"><span class="dot idle"></span>En casa</div>
     </div>
-    <div class="controls">
-      <button class="btn-main btn-go" id="btn-start" onclick="startWalk()">🦮 Iniciar Paseo</button>
-      <button class="btn-main btn-stop hidden" id="btn-stop" onclick="stopWalk()">🏁 Terminar</button>
-      <button class="btn-share hidden" id="btn-share" onclick="showShareLink()">📡 Compartir</button>
-    </div>`;
-  initMap();
-}
-
-async function renderOwnerHome(main){
-  const dogs=await fetchDogs();
-  const dog=dogs[0];
-  main.innerHTML=`
-    <div class="dog-card">
-      <div class="dog-avatar">${dog?dog.avatar:'🐕'}</div>
-      <div class="dog-info"><h2>${dog?dog.name:'Mi Perro'}</h2><p>${dog?dog.breed:'Agrega tu perro abajo'}</p></div>
-      <div class="dog-status"><span class="dot idle"></span> Monitoreando</div>
-    </div>
-    <div class="map-container"><div id="map"></div></div>
+    <div class="map-wrap"><div id="map"></div></div>
     <div class="panel">
-      <h3>🦮 Paseos activos ahora</h3>
+      <h3>📡 Paseos activos ahora</h3>
       <div id="active-walks"></div>
     </div>
     <div class="panel">
       <h3>🐶 Mis perros</h3>
       <div id="dogs-list"></div>
-      <button class="btn-add" onclick="document.getElementById('modal-dog').classList.remove('hidden')">+ Agregar perro</button>
+      <button class="btn-add" onclick="om('m-dog')">+ Agregar perro</button>
     </div>`;
   initMap();
-  renderDogsList(dogs);
+  renderDogsList(myDogs);
   loadActiveWalks();
 }
 
-async function fetchDogs(){
-  const {data}=await sb.from('dogs').select('*').eq('owner_id',currentUser.id);
-  currentDogs=data||[];
-  return currentDogs;
+async function renderWalkersList(m){
+  m.innerHTML=`<p class="section-title">🦮 Paseadores disponibles</p><div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
+  const {data}=await sb.from('profiles').select('*').eq('role','walker').eq('available',true);
+  const el=$('wlist');
+  if(!data||!data.length){el.innerHTML='<div class="empty"><span>😕</span><p>No hay paseadores disponibles aún</p></div>';return;}
+  el.innerHTML=data.map(w=>`
+    <div class="walker-card" onclick="openReqModal('${w.id}')">
+      <div class="wc-photo">${w.photo_url?`<img src="${w.photo_url}" onerror="this.style.display='none'">`:'🦮'}</div>
+      <div class="wc-info" style="flex:1">
+        <h4>${w.full_name}</h4>
+        <p>${w.phone||'Sin teléfono'}</p>
+        <div class="wc-stars">${stars(w.rating)} <span style="font-size:12px;color:var(--soft)">(${w.rating||5}/5)</span></div>
+        ${w.description?`<div class="wc-desc">${w.description}</div>`:''}
+      </div>
+      <button class="btn-req" onclick="event.stopPropagation();openReqModal('${w.id}')">Solicitar</button>
+    </div>`).join('');
 }
 
-function renderDogsList(dogs){
-  const el=document.getElementById('dogs-list'); if(!el) return;
-  el.innerHTML=dogs.length?dogs.map(d=>`
-    <div class="list-item">
-      <div class="list-item-icon">${d.avatar}</div>
-      <div class="list-item-info"><strong>${d.name}</strong><span>${d.breed||'Sin raza'}</span></div>
-    </div>`).join(''):'';
+async function openReqModal(walkerId){
+  const {data:w}=await sb.from('profiles').select('*').eq('id',walkerId).single();
+  reqWalker=w;
+  $('req-walker-info').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px;text-align:left">
+      <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee;border:2px solid var(--orange)">
+        ${w.photo_url?`<img src="${w.photo_url}" style="width:100%;height:100%;object-fit:cover">`:'🦮'}
+      </div>
+      <div><strong style="font-size:15px">${w.full_name}</strong><br><span style="font-size:12px;color:var(--soft)">${stars(w.rating)} ${w.rating||5}/5</span></div>
+    </div>`;
+  const myDogs=await getDogs();
+  $('req-dog').innerHTML=myDogs.length
+    ? myDogs.map(d=>`<option value="${d.id}">${d.avatar} ${d.name} (${d.breed||'sin raza'})</option>`).join('')
+    : '<option value="">No tienes perros aún</option>';
+  const now=new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  $('req-date').value=now.toISOString().slice(0,16);
+  om('m-req');
 }
 
-async function saveDog(){
-  const name=document.getElementById('dog-name-input').value.trim();
-  const breed=document.getElementById('dog-breed-input').value.trim();
-  if(!name) return alert('Escribe el nombre');
-  await sb.from('dogs').insert({owner_id:currentUser.id,name,breed,avatar:selectedAvatar});
-  closeModal('modal-dog');
-  const dogs=await fetchDogs();
-  renderDogsList(dogs);
-  navTo('home');
+async function sendRequest(){
+  const dogId=$('req-dog').value, date=$('req-date').value;
+  if(!dogId) return alert('Primero agrega un perro');
+  if(!reqWalker) return;
+  await sb.from('walk_requests').insert({owner_id:CU.id,walker_id:reqWalker.id,dog_id:dogId,scheduled_at:new Date(date).toISOString()});
+  cm('m-req');
+  alert(`✅ Solicitud enviada a ${reqWalker.full_name}! Espera su respuesta.`);
+  go('requests');
 }
 
+// ==========================================
+//   WALKER PAGES
+// ==========================================
+async function renderWalkerHome(m){
+  const {data:req}=await sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending');
+  const {data:activeWalk}=await sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').single();
+  m.innerHTML=`
+    <div class="hero-card">
+      <div class="hc-avatar">🦮</div>
+      <div class="hc-info"><h2>${CP.full_name}</h2><p>Paseador profesional</p></div>
+      <div class="hc-badge" id="walker-status-badge"><span class="dot ${activeWalk?'on':'idle'}"></span>${activeWalk?'De paseo':'Disponible'}</div>
+    </div>
+    ${activeWalk?`
+    <div class="map-wrap"><div id="map"></div>
+      <div class="map-hud" id="map-hud" style="display:flex">
+        <div class="hud-s">📍 <span id="s-dist">0.00 km</span></div>
+        <div class="hud-s">⏱️ <span id="s-time">00:00</span></div>
+      </div>
+    </div>
+    <div class="ctrls">
+      <button class="btn-m stop" onclick="stopWalk()">🏁 Terminar paseo</button>
+      <button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button>
+    </div>`:`
+    <div class="map-wrap"><div id="map"></div></div>
+    <div class="panel">
+      <h3>📬 Solicitudes pendientes</h3>
+      <div id="pending-req">
+        ${req&&req.length?req.map(r=>`
+          <div class="li">
+            <div class="li-av">${r.profiles?.photo_url?`<img src="${r.profiles.photo_url}">`:'👤'}</div>
+            <div class="li-info">
+              <strong>${r.profiles?.full_name||'Dueño'}</strong>
+              <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'} · ${r.dogs?.breed||''}</span>
+              <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-PE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn-accept" onclick="respondReq('${r.id}','accepted','${r.dog_id}')">✅ Aceptar</button>
+              <button class="btn-reject" onclick="respondReq('${r.id}','rejected','${r.dog_id}')">❌ Rechazar</button>
+            </div>
+          </div>`).join(''):'<div class="empty"><span>📭</span><p>No hay solicitudes pendientes</p></div>'}
+      </div>
+    </div>`}`;
+  initMap();
+  if(activeWalk){
+    walkId=activeWalk.id; tracking=true;
+    resumeWalk();
+  }
+}
+
+async function respondReq(reqId, status, dogId){
+  await sb.from('walk_requests').update({status}).eq('id',reqId);
+  if(status==='accepted'){
+    const {data:walk}=await sb.from('walks').insert({request_id:reqId,walker_id:CU.id,dog_id:dogId,status:'active'}).select().single();
+    walkId=walk?.id;
+    tracking=true;
+    alert('✅ ¡Solicitud aceptada! Cuando llegues con el perro presiona Iniciar Paseo.');
+    go('home');
+  } else {
+    alert('Solicitud rechazada.');
+    go('home');
+  }
+}
+
+async function renderWalkerWalks(m){
+  m.innerHTML=`<p class="section-title">📍 Mis paseos activos</p><div id="wwalks"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
+  const {data}=await sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active');
+  const el=$('wwalks');
+  if(!data||!data.length){el.innerHTML='<div class="empty"><span>🌿</span><p>No tienes paseos activos</p></div>';return;}
+  el.innerHTML=data.map(w=>`
+    <div class="li">
+      <div class="li-av">${w.dogs?.photo_url?`<img src="${w.dogs.photo_url}">`:(w.dogs?.avatar||'🐕')}</div>
+      <div class="li-info"><strong>${w.dogs?.name||'Perro'}</strong><span>Iniciado: ${new Date(w.started_at).toLocaleString('es-PE',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <button class="btn-watch" onclick="startActiveWalk('${w.id}')">📍 GPS</button>
+    </div>`).join('');
+}
+
+async function startActiveWalk(wId){
+  walkId=wId; tracking=true;
+  go('home');
+}
+
+// ==========================================
+//   REQUESTS PAGE (ambos roles)
+// ==========================================
+async function renderRequests(m){
+  m.innerHTML=`<p class="section-title">📋 Solicitudes</p><div id="req-list"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>`;
+  let q;
+  if(CP.role==='owner'){
+    q=sb.from('walk_requests').select('*,profiles!walk_requests_walker_id_fkey(full_name,photo_url,rating),dogs(name,avatar,photo_url)').eq('owner_id',CU.id).order('created_at',{ascending:false});
+  } else {
+    q=sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('walker_id',CU.id).order('created_at',{ascending:false});
+  }
+  const {data}=await q;
+  const el=$('req-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty"><span>📭</span><p>No hay solicitudes aún</p></div>';return;}
+  el.innerHTML=data.map(r=>{
+    const other=CP.role==='owner'?r.profiles:r.profiles;
+    const statusMap={pending:'sp-pending',accepted:'sp-accepted',rejected:'sp-rejected',completed:'sp-completed'};
+    const statusLbl={pending:'⏳ Pendiente',accepted:'✅ Aceptado',rejected:'❌ Rechazado',completed:'🏁 Completado'};
+    return `<div class="li">
+      <div class="li-av">${other?.photo_url?`<img src="${other.photo_url}">`:'👤'}</div>
+      <div class="li-info">
+        <strong>${other?.full_name||'Usuario'}</strong>
+        <span>${r.dogs?.avatar||'🐕'} ${r.dogs?.name||'Perro'}</span>
+        <span>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('es-PE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span>
+      </div>
+      <span class="status-pill ${statusMap[r.status]||''}">${statusLbl[r.status]||r.status}</span>
+    </div>`;
+  }).join('');
+}
+
+// ==========================================
+//   ACTIVE WALKS (owner watches)
+// ==========================================
 async function loadActiveWalks(){
-  const el=document.getElementById('active-walks'); if(!el) return;
-  const {data}=await sb.from('walks').select('*, profiles(full_name), dogs(name,avatar)').eq('status','active');
+  const el=$('active-walks'); if(!el) return;
+  const {data}=await sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active');
   if(!data||!data.length){
-    el.innerHTML='<div class="empty-state"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+    el.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
   } else {
     el.innerHTML=data.map(w=>`
-      <div class="list-item" style="border:2px solid #FFE8D6">
-        <div class="list-item-icon">${w.dogs?.avatar||'🐕'}</div>
-        <div class="list-item-info"><strong>${w.dogs?.name||'Perro'}</strong><span>Paseador: ${w.profiles?.full_name||'—'}</span></div>
+      <div class="li" style="border:2px solid #FFE8D6">
+        <div class="li-av">${w.dogs?.photo_url?`<img src="${w.dogs.photo_url}">`:(w.dogs?.avatar||'🐕')}</div>
+        <div class="li-info">
+          <strong>${w.dogs?.name||'Perro'}</strong>
+          <span>🦮 ${w.profiles?.full_name||'Paseador'}</span>
+        </div>
         <button class="btn-watch" onclick="watchWalk('${w.id}')">Ver 📍</button>
       </div>`).join('');
   }
   setTimeout(loadActiveWalks,10000);
 }
 
-async function watchWalk(walkId){
-  const main=document.getElementById('main-content');
-  main.innerHTML=`<div style="text-align:center;padding:20px;font-weight:800;color:var(--orange)">📡 Cargando paseo en vivo...</div><div class="map-container" style="height:400px"><div id="map"></div></div>`;
+async function watchWalk(wId){
+  const m=$('main');
+  m.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <button onclick="go('home')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">← Volver</button>
+      <span style="font-weight:800;color:var(--orange)">📡 Paseo en vivo</span>
+    </div>
+    <div class="map-wrap" style="height:420px"><div id="map"></div></div>`;
   setTimeout(async()=>{
     initMap();
-    const {data:points}=await sb.from('gps_points').select('*').eq('walk_id',walkId).order('recorded_at');
-    if(points&&points.length){
-      const lls=points.map(p=>[p.lat,p.lng]);
+    const {data:gps}=await sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at');
+    if(gps&&gps.length){
+      const lls=gps.map(p=>[p.lat,p.lng]);
       routeLine.setLatLngs(lls);
       map.fitBounds(lls);
-      const last=points[points.length-1];
-      userMarker=L.marker([last.lat,last.lng],{icon:createDogIcon()}).addTo(map);
+      const last=gps[gps.length-1];
+      uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
     }
-    if(realtimeChannel) realtimeChannel.unsubscribe();
-    realtimeChannel=sb.channel('walk-'+walkId)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:`walk_id=eq.${walkId}`},({new:p})=>{
-        routeLine.addLatLng([p.lat,p.lng]);
-        map.panTo([p.lat,p.lng]);
-        if(userMarker) userMarker.setLatLng([p.lat,p.lng]);
-        else userMarker=L.marker([p.lat,p.lng],{icon:createDogIcon()}).addTo(map);
-      }).subscribe();
+    if(rtCh) rtCh.unsubscribe();
+    rtCh=sb.channel('walk-'+wId).on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:`walk_id=eq.${wId}`},({new:p})=>{
+      routeLine.addLatLng([p.lat,p.lng]); map.panTo([p.lat,p.lng]);
+      if(uMarker) uMarker.setLatLng([p.lat,p.lng]); else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
+    }).subscribe();
   },300);
 }
 
-// ---- MAP ----
+// ==========================================
+//   MAP & WALK (walker GPS)
+// ==========================================
 function initMap(lat=-12.046,lng=-77.043){
-  if(map){map.remove();map=null;userMarker=null;}
-  const el=document.getElementById('map'); if(!el) return;
+  if(map){map.remove();map=null;uMarker=null;}
+  const el=$('map'); if(!el) return;
   map=L.map('map',{zoomControl:false}).setView([lat,lng],15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:.85}).addTo(map);
   if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15),()=>{});
 }
-function createDogIcon(){
-  return L.divIcon({html:`<div style="font-size:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))">${currentDogs[0]?.avatar||'🐕'}</div>`,iconSize:[36,36],iconAnchor:[18,18],className:''});
+function dogIcon(){
+  const av=dogs[0]?.avatar||'🐕';
+  return L.divIcon({html:`<div style="font-size:26px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))">${av}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''});
 }
 
-// ---- WALK ----
-async function startWalk(){
-  if(!navigator.geolocation) return alert('Tu navegador no soporta GPS 😢');
-  tracking=true; routePoints=[]; totalDistance=0; startTime=Date.now();
-  const dog=currentDogs[0];
-  const {data:walk}=await sb.from('walks').insert({walker_id:currentUser.id,dog_id:dog?.id||null,status:'active'}).select().single();
-  currentWalkId=walk?.id;
-  document.getElementById('btn-start')?.classList.add('hidden');
-  document.getElementById('btn-stop')?.classList.remove('hidden');
-  document.getElementById('btn-share')?.classList.remove('hidden');
-  document.getElementById('live-info').style.display='flex';
-  document.getElementById('dog-status-badge').innerHTML='<span class="dot active"></span> De paseo 🦮';
-  if(routeLine) routeLine.setLatLngs([]);
-  timerInterval=setInterval(()=>{ const e=document.getElementById('stat-time'); if(e) e.textContent=formatTime(Date.now()-startTime); },1000);
-  gpsWatchId=navigator.geolocation.watchPosition(async pos=>{
+function resumeWalk(){
+  if(!navigator.geolocation||!walkId) return;
+  pts=[]; dist=0; t0=Date.now();
+  tmrId=setInterval(()=>{const e=$('s-time');if(e)e.textContent=fmtT(Date.now()-t0);},1000);
+  gpsId=navigator.geolocation.watchPosition(async pos=>{
     const {latitude:lat,longitude:lng}=pos.coords;
     const pt={lat,lng};
-    if(routePoints.length>0) totalDistance+=haversine(routePoints[routePoints.length-1],pt);
-    routePoints.push(pt);
-    const ed=document.getElementById('stat-dist'); if(ed) ed.textContent=totalDistance.toFixed(2)+' km';
+    if(pts.length>0) dist+=hav(pts[pts.length-1],pt);
+    pts.push(pt);
+    const ed=$('s-dist'); if(ed) ed.textContent=dist.toFixed(2)+' km';
     if(routeLine) routeLine.addLatLng([lat,lng]);
     if(map) map.panTo([lat,lng]);
-    if(userMarker) userMarker.setLatLng([lat,lng]);
-    else userMarker=L.marker([lat,lng],{icon:createDogIcon()}).addTo(map);
-    if(currentWalkId) await sb.from('gps_points').insert({walk_id:currentWalkId,lat,lng});
-  },err=>{if(err.code===1) alert('Activa el GPS 📍');},{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+    if(uMarker) uMarker.setLatLng([lat,lng]); else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
+    if(walkId) await sb.from('gps_points').insert({walk_id:walkId,lat,lng});
+  },err=>{if(err.code===1)alert('Activa el GPS 📍');},{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
 
 async function stopWalk(){
   tracking=false;
-  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
-  clearInterval(timerInterval);
-  const duration=Date.now()-startTime;
-  if(currentWalkId) await sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:totalDistance}).eq('id',currentWalkId);
-  document.getElementById('btn-stop')?.classList.add('hidden');
-  document.getElementById('btn-share')?.classList.add('hidden');
-  document.getElementById('btn-start')?.classList.remove('hidden');
-  const li=document.getElementById('live-info'); if(li) li.style.display='none';
-  const bd=document.getElementById('dog-status-badge'); if(bd) bd.innerHTML='<span class="dot idle"></span> En casa';
-  document.getElementById('sum-dist').textContent=totalDistance.toFixed(2)+' km';
-  document.getElementById('sum-time').textContent=formatTime(duration);
-  document.getElementById('sum-pts').textContent=routePoints.length;
-  document.getElementById('modal-summary').classList.remove('hidden');
-  currentWalkId=null;
+  if(gpsId!==null){navigator.geolocation.clearWatch(gpsId);gpsId=null;}
+  clearInterval(tmrId);
+  const dur=Date.now()-t0;
+  if(walkId) await sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',walkId);
+  $('s-dist').textContent=dist.toFixed(2)+' km';
+  $('s-time').textContent=fmtT(dur);
+  $('s-pts').textContent=pts.length;
+  om('m-sum');
+  walkId=null;
 }
 
-function showShareLink(){
-  if(!currentWalkId) return;
-  const link=`${location.origin}${location.pathname}?watch=${currentWalkId}`;
-  document.getElementById('share-link-text').textContent=link;
-  document.getElementById('modal-share').classList.remove('hidden');
+function showShare(){
+  if(!walkId) return;
+  const link=`${location.origin}${location.pathname}?watch=${walkId}`;
+  $('share-txt').textContent=link;
+  om('m-share');
 }
-function copyShareLink(){
-  navigator.clipboard.writeText(document.getElementById('share-link-text').textContent).then(()=>alert('¡Copiado! 📋'));
+function copyLink(){navigator.clipboard.writeText($('share-txt').textContent).then(()=>alert('¡Copiado! 📋'));}
+
+// ==========================================
+//   DOGS
+// ==========================================
+async function getDogs(){
+  const {data}=await sb.from('dogs').select('*').eq('owner_id',CU.id);
+  dogs=data||[]; return dogs;
+}
+function renderDogsList(dogsArr){
+  const el=$('dogs-list'); if(!el) return;
+  el.innerHTML=dogsArr.map(d=>`
+    <div class="li">
+      <div class="li-av">${d.photo_url?`<img src="${d.photo_url}">`:`<span>${d.avatar||'🐕'}</span>`}</div>
+      <div class="li-info"><strong>${d.name}</strong><span>${d.breed||'Sin raza'}${d.age?' · '+d.age+' años':''}</span></div>
+    </div>`).join('')||'';
+}
+async function saveDog(){
+  const name=$('d-name').value.trim(), breed=$('d-breed').value.trim();
+  const age=parseInt($('d-age').value)||null, photo=$('d-photo').value.trim();
+  if(!name) return alert('Escribe el nombre del perro');
+  await sb.from('dogs').insert({owner_id:CU.id,name,breed,age,photo_url:photo||null,avatar:dogAv});
+  cm('m-dog');
+  const d=await getDogs(); renderDogsList(d);
+  go('home');
 }
 
-// ---- HISTORY ----
-async function renderHistory(main){
-  main.innerHTML=`<div class="panel"><h3>🗓️ Historial de paseos</h3><div id="hist-list"><div class="empty-state"><span>⏳</span><p>Cargando...</p></div></div></div>`;
-  const isWalker=currentProfile.role==='walker';
-  const q=isWalker
-    ? sb.from('walks').select('*,dogs(name,avatar)').eq('walker_id',currentUser.id).eq('status','completed').order('ended_at',{ascending:false})
-    : sb.from('walks').select('*,dogs(name,avatar),profiles(full_name)').eq('status','completed').order('ended_at',{ascending:false});
-  const {data}=await q;
-  const el=document.getElementById('hist-list');
-  if(!data||!data.length){ el.innerHTML='<div class="empty-state"><span>🌿</span><p>Aún no hay paseos</p></div>'; return; }
-  el.innerHTML=data.map(w=>`
-    <div class="list-item">
-      <div class="list-item-icon">${w.dogs?.avatar||'🐾'}</div>
-      <div class="list-item-info">
-        <strong>${w.dogs?.name||'Perro'}</strong>
-        <span>${w.ended_at?new Date(w.ended_at).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}):''} ${!isWalker&&w.profiles?'· '+w.profiles.full_name:''}</span>
-      </div>
-      <div class="list-item-badge">📏 ${(w.distance||0).toFixed(2)} km</div>
-    </div>`).join('');
-}
-
-// ---- PROFILE PAGE ----
-function renderProfilePage(main){
-  main.innerHTML=`
-    <div class="dog-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">
-      <div class="dog-avatar">👤</div>
-      <div class="dog-info"><h2>${currentProfile?.full_name||'Usuario'}</h2><p>${currentProfile?.role==='owner'?'🏠 Dueño de perro':'🦮 Paseador profesional'}</p></div>
-    </div>
-    <div class="panel"><p style="font-weight:800;color:var(--text-soft);font-size:12px;text-transform:uppercase;margin-bottom:8px">Email</p><p style="font-weight:700">📧 ${currentUser?.email||''}</p></div>
-    <button onclick="doLogout()" style="width:100%;background:#FFF0F0;color:var(--red);border:none;border-radius:16px;padding:14px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🚪 Cerrar sesión</button>`;
-}
-
-// ---- AVATAR PICKER ----
-document.getElementById('avatar-picker-dog').addEventListener('click',e=>{
-  const opt=e.target.closest('.avatar-opt'); if(!opt) return;
-  document.querySelectorAll('#avatar-picker-dog .avatar-opt').forEach(o=>o.classList.remove('selected'));
-  opt.classList.add('selected'); selectedAvatar=opt.dataset.emoji;
+// avatar picker dog
+$('av-dog').addEventListener('click',e=>{
+  const o=e.target.closest('.av-opt'); if(!o) return;
+  document.querySelectorAll('#av-dog .av-opt').forEach(x=>x.classList.remove('sel'));
+  o.classList.add('sel'); dogAv=o.dataset.e;
 });
 
-// ---- BOOTSTRAP ----
+// ==========================================
+//   PROFILE PAGE
+// ==========================================
+function renderProfilePage(m){
+  m.innerHTML=`
+    <div class="hero-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">
+      <div class="hc-avatar">${CP?.photo_url?`<img src="${CP.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:'👤'}</div>
+      <div class="hc-info">
+        <h2>${CP?.full_name||'Usuario'}</h2>
+        <p>${CP?.role==='owner'?'🏠 Dueño de perro':'🦮 Paseador profesional'}</p>
+        ${CP?.rating?`<p>⭐ ${CP.rating}/5</p>`:''}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="fg"><label>Email</label><p style="font-weight:700;padding:4px 0">📧 ${CU?.email||''}</p></div>
+      ${CP?.phone?`<div class="fg"><label>Teléfono</label><p style="font-weight:700;padding:4px 0">📱 ${CP.phone}</p></div>`:''}
+      ${CP?.description?`<div class="fg"><label>Descripción</label><p style="font-weight:600;font-size:14px;color:var(--soft)">${CP.description}</p></div>`:''}
+    </div>
+    <button onclick="doLogout()" style="width:100%;background:#FFF0F0;color:var(--red);border:none;border-radius:16px;padding:13px;font-size:16px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🚪 Cerrar sesión</button>`;
+}
+
+// ==========================================
+//   BOOTSTRAP
+// ==========================================
 window.addEventListener('DOMContentLoaded',async()=>{
   const watchParam=new URLSearchParams(location.search).get('watch');
   setTimeout(async()=>{
-    const splash=document.getElementById('splash');
-    splash.classList.add('fade-out');
+    const splash=$('splash');
+    splash.classList.add('out');
     setTimeout(async()=>{
       splash.style.display='none';
       const {data:{session}}=await sb.auth.getSession();
-      if(session){ await initApp(session.user); if(watchParam) watchWalk(watchParam); }
-      else document.getElementById('auth-screen').classList.remove('hidden');
+      if(session){await initApp(session.user);if(watchParam)watchWalk(watchParam);}
+      else om('auth');
     },600);
-  },2000);
+  },2200);
 
   sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session){ await initApp(session.user); }
-    else if(event==='SIGNED_OUT'){
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('auth-screen').classList.remove('hidden');
-    }
+    if(event==='SIGNED_IN'&&session){await initApp(session.user);}
+    else if(event==='SIGNED_OUT'){$('app').classList.add('hidden');om('auth');}
   });
 });
 </script>
