@@ -234,11 +234,29 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 
 <div id="m-req" class="modal hidden">
   <div class="mbox">
-    <button class="mclose" onclick="closeModal('m-req')">✕</button>
+    <button class="mclose" onclick="closeModal('m-req')">X</button>
     <h2>🦮 Solicitar Paseador</h2>
     <div id="req-walker-info" style="margin-bottom:16px"></div>
-    <div class="fg"><label>¿Qué perro?</label><select id="req-dog"></select></div>
-    <div class="fg"><label>Fecha y hora</label><input type="datetime-local" id="req-date"/></div>
+    <div class="fg"><label>Que perro?</label><select id="req-dog"></select></div>
+    <div class="fg">
+      <label>Fecha y hora (Argentina)</label>
+      <input type="datetime-local" id="req-date" style="font-size:16px"/>
+      <p style="font-size:11px;color:var(--soft);margin-top:4px">Horario Argentina GMT-3</p>
+    </div>
+    <div class="fg">
+      <label>Tu ubicacion (donde esta el perro)</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="req-addr" placeholder="Ej: Av. Corrientes 1234, CABA" style="flex:1"/>
+        <button onclick="searchAddr()" style="background:var(--or);color:#fff;border:none;border-radius:12px;padding:0 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;white-space:nowrap">Buscar</button>
+      </div>
+      <div style="position:relative;border-radius:14px;overflow:hidden;height:200px;border:2px solid #eee" id="req-map-wrap">
+        <div id="req-map" style="height:100%;width:100%"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-56%);z-index:1000;font-size:32px;pointer-events:none">📍</div>
+        <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(0,0,0,.7);color:#fff;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;white-space:nowrap">Arrastra el mapa para mover el pin</div>
+      </div>
+      <button onclick="useMyGps()" style="width:100%;margin-top:8px;background:var(--bg);border:2px solid var(--or);border-radius:12px;padding:9px;font-size:13px;font-weight:800;cursor:pointer;color:var(--or);font-family:Nunito,sans-serif">GPS - Usar mi ubicacion actual</button>
+      <p id="req-addr-display" style="font-size:12px;color:var(--soft);margin-top:6px;font-weight:600;text-align:center"></p>
+    </div>
     <button class="btn-save" onclick="sendRequest()">Enviar solicitud 🐾</button>
   </div>
 </div>
@@ -296,6 +314,7 @@ var pts = [], t0 = null, dist = 0, walkId = null;
 var dogAv = '🐕', selRole_ = 'owner';
 var dogs = [], reqWalker = null, rtCh = null;
 var ratingData = {reqId:null, walkerId:null, walkerName:'', score:0};
+var reqMap = null, reqLat = -34.603, reqLng = -58.381;
 
 function gid(id){ return document.getElementById(id); }
 function showEl(id){ var e=gid(id); if(e){ e.classList.remove('hidden'); e.style.display=''; } }
@@ -476,19 +495,106 @@ function openReqModal(walkerId){
         sel.innerHTML='<option value="">No tenes perros aun</option>';
       }
     });
+    // Fecha con hora Argentina
     var now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
     gid('req-date').value=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
     openModal('m-req');
+    // Inicializar mini mapa de ubicacion despues de que el modal este visible
+    setTimeout(function(){ initReqMap(); }, 300);
   });
+}
+
+function initReqMap(){
+  if(reqMap){ reqMap.remove(); reqMap=null; }
+  var el=gid('req-map');
+  if(!el) return;
+  reqMap=L.map('req-map',{zoomControl:false}).setView([reqLat,reqLng],14);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(reqMap);
+  L.control.zoom({position:'topright'}).addTo(reqMap);
+  // El pin central sigue el centro del mapa
+  reqMap.on('move', function(){
+    var c=reqMap.getCenter();
+    reqLat=c.lat; reqLng=c.lng;
+    reverseGeocode(reqLat, reqLng);
+  });
+  // Intentar GPS del dueño automaticamente
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      reqLat=pos.coords.latitude; reqLng=pos.coords.longitude;
+      reqMap.setView([reqLat,reqLng],16);
+      reverseGeocode(reqLat,reqLng);
+    }, function(){
+      reverseGeocode(reqLat,reqLng);
+    }, {enableHighAccuracy:true,timeout:8000,maximumAge:0});
+  }
+}
+
+function reverseGeocode(lat,lng){
+  var disp=gid('req-addr-display');
+  if(!disp) return;
+  disp.textContent='Obteniendo direccion...';
+  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=es')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var addr=d.display_name||('Lat: '+lat.toFixed(4)+', Lng: '+lng.toFixed(4));
+      // Mostrar solo la parte relevante
+      if(d.address){
+        var parts=[];
+        if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
+        if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
+        if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
+        addr=parts.join(', ');
+      }
+      if(disp) disp.textContent='📍 '+addr;
+      var inp=gid('req-addr');
+      if(inp&&!inp.value) inp.value=addr;
+    })
+    .catch(function(){
+      if(disp) disp.textContent='Lat: '+lat.toFixed(4)+', Lng: '+lng.toFixed(4);
+    });
+}
+
+function searchAddr(){
+  var q=gid('req-addr').value.trim();
+  if(!q) return;
+  gid('req-addr-display').textContent='Buscando...';
+  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&accept-language=es')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d&&d.length){
+        reqLat=parseFloat(d[0].lat); reqLng=parseFloat(d[0].lon);
+        reqMap.setView([reqLat,reqLng],16);
+        gid('req-addr-display').textContent='📍 '+d[0].display_name;
+      } else {
+        gid('req-addr-display').textContent='No se encontro la direccion';
+      }
+    });
+}
+
+function useMyGps(){
+  if(!navigator.geolocation){ alert('GPS no disponible'); return; }
+  gid('req-addr-display').textContent='Obteniendo ubicacion...';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    reqLat=pos.coords.latitude; reqLng=pos.coords.longitude;
+    if(reqMap) reqMap.setView([reqLat,reqLng],16);
+    reverseGeocode(reqLat,reqLng);
+  }, function(){ alert('No se pudo obtener ubicacion. Permiti el GPS o escribi la direccion.'); },
+  {enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
 
 function sendRequest(){
   var dogId=gid('req-dog').value, date=gid('req-date').value;
   if(!dogId){ alert('Primero agrega un perro'); return; }
   if(!reqWalker) return;
-  sb.from('walk_requests').insert({owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId, scheduled_at:new Date(date).toISOString()}).then(function(){
+  var addrTxt=gid('req-addr-display').textContent.replace('📍 ','') || gid('req-addr').value || '';
+  sb.from('walk_requests').insert({
+    owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
+    scheduled_at:new Date(date).toISOString(),
+    owner_lat:reqLat, owner_lng:reqLng, owner_address:addrTxt
+  }).then(function(){
+    if(reqMap){ reqMap.remove(); reqMap=null; }
     closeModal('m-req');
-    alert('Solicitud enviada a '+reqWalker.full_name+'! Espera su respuesta.');
+    alert('Solicitud enviada a '+reqWalker.full_name+'!');
     go('requests');
   });
 }
