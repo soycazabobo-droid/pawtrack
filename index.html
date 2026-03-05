@@ -426,6 +426,7 @@ function doRegister(){
   var address=(gid('ru-address')&&gid('ru-address').value.trim())||'';
   if(!name||!email||!pass){ showErr('Completa nombre, email y contraseña'); return; }
   if(pass.length<6){ showErr('Contraseña minimo 6 caracteres'); return; }
+  if(selRole_==='walker' && !phone){ showErr('El teléfono es obligatorio para paseadores'); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
   var btn=gid('btn-up'); btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
   sb.auth.signUp({email:email, password:pass, options:{data:{full_name:name, role:selRole_}}}).then(function(res){
     if(res.error){ showErr(res.error.message); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
@@ -715,14 +716,18 @@ function renderWalkerHome(m){
       html+='<div class="panel"><h3>📬 Solicitudes pendientes</h3><div id="pending-req">';
       if(reqs.length){
         reqs.forEach(function(r){
-          html+='<div class="li">';
+          html+='<div class="li" style="flex-direction:column;align-items:stretch;gap:10px;padding:14px">';
+          html+='<div style="display:flex;align-items:center;gap:10px">';
           html+='<div class="li-av">'+(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'">'  :'👤')+'</div>';
           html+='<div class="li-info"><strong>'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueno')+'</strong>';
-          html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span>';
-          html+='<span>'+fmtDate(r.scheduled_at)+'</span></div>';
-          html+='<div style="display:flex;flex-direction:column;gap:6px">';
-          html+='<button class="btn-accept" onclick="respondReq(\''+r.id+'\',\'accepted\',\''+r.dog_id+'\')">✅ Aceptar</button>';
-          html+='<button class="btn-reject" onclick="respondReq(\''+r.id+'\',\'rejected\',\''+r.dog_id+'\')">❌ Rechazar</button>';
+          html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span></div></div>';
+          html+='<div style="background:rgba(255,107,53,.08);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px">';
+          html+='<span style="font-size:13px;font-weight:800">🕐 '+fmtDate(r.scheduled_at)+'</span>';
+          if(r.owner_address) html+='<span style="font-size:12px;color:var(--soft)">📍 '+r.owner_address+'</span>';
+          html+='</div>';
+          html+='<div style="display:flex;gap:8px">';
+          html+='<button class="btn-accept" style="flex:1" onclick="respondReq(\''+r.id+'\',\'accepted\',\''+r.dog_id+'\')">✅ Aceptar</button>';
+          html+='<button class="btn-reject" style="flex:1" onclick="respondReq(\''+r.id+'\',\'rejected\',\''+r.dog_id+'\')">❌ Rechazar</button>';
           html+='</div></div>';
         });
       } else {
