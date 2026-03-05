@@ -856,29 +856,37 @@ function watchWalk(wId){
 }
 
 
+var myLocMarker = null;
+function showMyLocation(la, lo){
+  if(!map) return;
+  map.setView([la,lo],16);
+  var myIcon=L.divIcon({
+    html:'<div style="position:relative;display:flex;align-items:center;justify-content:center">'+
+      '<div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(59,130,246,.25);animation:pulse 1.5s infinite"></div>'+
+      '<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.6);position:relative;z-index:1"></div></div>',
+    iconSize:[44,44],iconAnchor:[22,22],className:''
+  });
+  if(myLocMarker) myLocMarker.setLatLng([la,lo]);
+  else { myLocMarker=L.marker([la,lo],{icon:myIcon}).addTo(map); }
+}
 function initMap(lat, lng){
   lat=lat||-34.603; lng=lng||-58.381;
-  if(map){ map.remove(); map=null; uMarker=null; routeLine=null; }
+  if(map){ map.remove(); map=null; uMarker=null; routeLine=null; myLocMarker=null; }
   var el=gid('map');
   if(!el) return;
   map=L.map('map',{zoomControl:false}).setView([lat,lng],15);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1}).addTo(map);
-  // Mostrar pin azul pulsante con ubicacion del usuario
   if(navigator.geolocation){
+    // Primero intentar con cache (rapido, aparece instantaneo)
     navigator.geolocation.getCurrentPosition(function(p){
-      var la=p.coords.latitude, lo=p.coords.longitude;
-      if(!map) return;
-      map.setView([la,lo],16);
-      var myIcon=L.divIcon({
-        html:'<div style="position:relative;display:flex;align-items:center;justify-content:center">'+
-          '<div style="position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,.2);animation:pulse 1.5s infinite"></div>'+
-          '<div style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1"></div></div>',
-        iconSize:[40,40],iconAnchor:[20,20],className:''
-      });
-      L.marker([la,lo],{icon:myIcon}).addTo(map).bindPopup('📍 Tu ubicación');
-    }, function(){}, {enableHighAccuracy:true,timeout:8000,maximumAge:0});
+      showMyLocation(p.coords.latitude, p.coords.longitude);
+    }, function(){}, {enableHighAccuracy:false, timeout:3000, maximumAge:30000});
+    // Luego actualizar con GPS preciso
+    navigator.geolocation.getCurrentPosition(function(p){
+      showMyLocation(p.coords.latitude, p.coords.longitude);
+    }, function(){}, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
   }
 }
 
