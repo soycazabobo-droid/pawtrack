@@ -642,17 +642,32 @@ function useMyGps(){
 function sendRequest(){
   var dogId=gid('req-dog').value, date=gid('req-date').value;
   if(!dogId){ alert('Primero agrega un perro'); return; }
-  if(!reqWalker) return;
-  var addrTxt=gid('req-addr-display').textContent.replace('📍 ','') || gid('req-addr').value || '';
+  if(!reqWalker){ alert('Error: no hay paseador seleccionado'); return; }
+  if(!date){ alert('Selecciona fecha y hora'); return; }
+  // Feedback visual en el boton
+  var btn=document.querySelector('#m-req .btn-save');
+  if(btn){ btn.textContent='Enviando...'; btn.disabled=true; }
+  var addrTxt='';
+  var dispEl=gid('req-addr-display');
+  var addrEl=gid('req-addr');
+  if(dispEl) addrTxt=dispEl.textContent.replace('📍 ','').trim();
+  if(!addrTxt && addrEl) addrTxt=addrEl.value.trim();
+  var scheduled;
+  try { scheduled=new Date(date).toISOString(); } catch(e){ scheduled=new Date().toISOString(); }
   sb.from('walk_requests').insert({
     owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
-    scheduled_at:new Date(date).toISOString(),
-    owner_lat:reqLat, owner_lng:reqLng, owner_address:addrTxt
-  }).then(function(){
+    scheduled_at:scheduled,
+    owner_lat:reqLat||null, owner_lng:reqLng||null, owner_address:addrTxt||null
+  }).then(function(res){
+    if(btn){ btn.textContent='Enviar solicitud 🐾'; btn.disabled=false; }
+    if(res.error){ alert('Error al enviar: '+res.error.message); return; }
     if(reqMap){ reqMap.remove(); reqMap=null; }
     closeModal('m-req');
     alert('Solicitud enviada a '+reqWalker.full_name+'!');
     go('requests');
+  }).catch(function(err){
+    if(btn){ btn.textContent='Enviar solicitud 🐾'; btn.disabled=false; }
+    alert('Error: '+(err.message||'intenta de nuevo'));
   });
 }
 
