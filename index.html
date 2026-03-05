@@ -715,7 +715,14 @@ function renderWalkerHome(m){
     if(activeWalk){
       walkId=activeWalk.id;
       tracking=true;
-      setTimeout(function(){ resumeWalk(); }, 500);
+      // Arrancar GPS automaticamente
+      setTimeout(function(){
+        if(navigator.geolocation){
+          resumeWalk();
+        } else {
+          alert('Este navegador no soporta GPS. Usa el celular del paseador.');
+        }
+      }, 600);
     }
   });
 }
@@ -805,27 +812,26 @@ function loadActiveWalks(){
   var el=gid('active-walks');
   if(!el) return;
   if(!CU) return;
-  // Buscar walks activos donde el dueno es el usuario logueado
-  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').eq('owner_id',CU.id).then(function(res){
-    var data=res.data;
-    if(!gid('active-walks')) return;
-    if(!data||!data.length){
-      // Si no hay walks con owner_id (walks viejos), buscar por dog
-      sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').then(function(res2){
-        var el2=gid('active-walks');
-        if(!el2) return;
-        var data2=(res2.data||[]).filter(function(w){ return dogs&&dogs.some(function(d){ return d.id===w.dog_id; }); });
-        if(!data2.length){
-          el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-        } else {
-          renderActiveWalks(el2, data2);
-        }
-        setTimeout(loadActiveWalks, 5000);
-      });
-    } else {
-      renderActiveWalks(el, data);
+  // Buscar walks activos por dog_id de los perros del dueño
+  getDogs().then(function(myDogs){
+    if(!myDogs||!myDogs.length){
+      var el2=gid('active-walks');
+      if(el2) el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
       setTimeout(loadActiveWalks, 5000);
+      return;
     }
+    var dogIds=myDogs.map(function(d){ return d.id; });
+    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').in('dog_id',dogIds).then(function(res){
+      var el3=gid('active-walks');
+      if(!el3) return;
+      var data=res.data||[];
+      if(!data.length){
+        el3.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+      } else {
+        renderActiveWalks(el3, data);
+      }
+      setTimeout(loadActiveWalks, 5000);
+    });
   });
 }
 function renderActiveWalks(el, data){
