@@ -676,21 +676,39 @@ function sendRequest(){
 function renderWalkerHome(m){
   Promise.all([
     sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
-    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').maybeSingle()
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).in('status',['reserved','active']).maybeSingle()
   ]).then(function(results){
     var reqs=results[0].data||[], activeWalk=results[1].data;
+    var isReserved = activeWalk && activeWalk.status==='reserved';
+    var isActive = activeWalk && activeWalk.status==='active';
     var html='<div class="hero-card"><div class="hc-av">🦮</div>';
     html+='<div class="hc-info"><h2>'+CP.full_name+'</h2><p>Paseador profesional</p></div>';
-    html+='<div class="hc-badge"><span class="dot '+(activeWalk?'on':'idle')+'"></span>'+(activeWalk?'De paseo':'Disponible')+'</div></div>';
-    if(activeWalk){
+    var badgeText = isActive ? 'De paseo' : (isReserved ? 'Reservado' : 'Disponible');
+    var badgeDot = isActive ? 'on' : (isReserved ? 'on' : 'idle');
+    html+='<div class="hc-badge"><span class="dot '+badgeDot+'"></span>'+badgeText+'</div></div>';
+    if(isActive){
+      // PASEO ACTIVO — mapa con GPS y botón terminar
       html+='<div class="map-wrap"><div id="map"></div>';
       html+='<div class="map-live"><span class="live-dot"></span>EN VIVO</div>';
       html+='<div class="map-hud" id="map-hud" style="display:flex">';
       html+='<div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>';
       html+='<div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>';
       html+='</div></div>';
-      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk()">🏁 Terminar</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
+      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk()">🏁 Finalizar paseo</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
+    } else if(isReserved){
+      // PASEO RESERVADO — info del perro y botón para empezar
+      var dog = activeWalk.dogs;
+      html+='<div class="panel" style="border:2px solid var(--or)">';
+      html+='<h3 style="color:var(--or)">📋 Paseo reservado</h3>';
+      html+='<div class="li">';
+      html+='<div class="li-av">'+(dog&&dog.photo_url?'<img src="'+dog.photo_url+'">':(dog&&dog.avatar?dog.avatar:'🐕'))+'</div>';
+      html+='<div class="li-info"><strong>'+(dog&&dog.name?dog.name:'Perro')+'</strong>';
+      html+='<span>Esperando que empieces el paseo</span></div></div>';
+      html+='<button class="btn-save" style="width:100%;margin-top:14px;font-size:16px" onclick="startWalk(\''+activeWalk.id+'\')">🚶 Empezar paseo</button>';
+      html+='</div>';
+      html+='<div class="map-wrap"><div id="map"></div></div>';
     } else {
+      // SIN PASEO — mapa y solicitudes pendientes
       html+='<div class="map-wrap"><div id="map"></div></div>';
       html+='<div class="panel"><h3>📬 Solicitudes pendientes</h3><div id="pending-req">';
       if(reqs.length){
@@ -712,16 +730,11 @@ function renderWalkerHome(m){
     }
     m.innerHTML=html;
     initMap();
-    if(activeWalk){
+    if(isActive){
       walkId=activeWalk.id;
       tracking=true;
-      // Arrancar GPS automaticamente
       setTimeout(function(){
-        if(navigator.geolocation){
-          resumeWalk();
-        } else {
-          alert('Este navegador no soporta GPS. Usa el celular del paseador.');
-        }
+        if(navigator.geolocation){ resumeWalk(); }
       }, 600);
     }
   });
@@ -730,13 +743,12 @@ function renderWalkerHome(m){
 function respondReq(reqId, status, dogId){
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
-      // Obtener owner_id de la solicitud
       sb.from('walk_requests').select('owner_id').eq('id',reqId).maybeSingle().then(function(rq){
         var ownerId = rq.data && rq.data.owner_id ? rq.data.owner_id : null;
-        sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'active', started_at:new Date().toISOString()}).select().maybeSingle().then(function(res){
-          walkId=res.data&&res.data.id?res.data.id:null;
-          tracking=true;
-          alert('Solicitud aceptada! El GPS se activara cuando empieces.');
+        // Crear walk como RESERVED, sin started_at todavia
+        sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'reserved'}).select().maybeSingle().then(function(res){
+          walkId = res.data && res.data.id ? res.data.id : null;
+          alert('Solicitud aceptada! Cuando llegues apreta "Empezar paseo".');
           go('home');
         });
       });
@@ -744,6 +756,16 @@ function respondReq(reqId, status, dogId){
       alert('Solicitud rechazada.');
       go('home');
     }
+  });
+}
+
+function startWalk(wId){
+  // Cambiar status a active y setear started_at
+  sb.from('walks').update({status:'active', started_at:new Date().toISOString()}).eq('id',wId).then(function(res){
+    if(res.error){ alert('Error al iniciar: '+res.error.message); return; }
+    walkId=wId;
+    tracking=true;
+    go('home');
   });
 }
 
@@ -812,7 +834,6 @@ function loadActiveWalks(){
   var el=gid('active-walks');
   if(!el) return;
   if(!CU) return;
-  // Buscar walks activos por dog_id de los perros del dueño
   getDogs().then(function(myDogs){
     if(!myDogs||!myDogs.length){
       var el2=gid('active-walks');
@@ -821,7 +842,7 @@ function loadActiveWalks(){
       return;
     }
     var dogIds=myDogs.map(function(d){ return d.id; });
-    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').in('dog_id',dogIds).then(function(res){
+    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').in('status',['reserved','active']).in('dog_id',dogIds).then(function(res){
       var el3=gid('active-walks');
       if(!el3) return;
       var data=res.data||[];
@@ -837,11 +858,16 @@ function loadActiveWalks(){
 function renderActiveWalks(el, data){
   var html='';
   data.forEach(function(w){
-    html+='<div class="li" style="border:2px solid #FFE8D6">';
+    var isActive = w.status==='active';
+    html+='<div class="li" style="border:2px solid '+(isActive?'#FF6B35':'#FFD23F')+'">';
     html+='<div class="li-av">'+(w.dogs&&w.dogs.photo_url?'<img src="'+w.dogs.photo_url+'">':(w.dogs&&w.dogs.avatar?w.dogs.avatar:'🐕'))+'</div>';
     html+='<div class="li-info"><strong>'+(w.dogs&&w.dogs.name?w.dogs.name:'Perro')+'</strong>';
-    html+='<span>🦮 '+(w.profiles&&w.profiles.full_name?w.profiles.full_name:'Paseador')+'</span></div>';
-    html+='<button class="btn-watch" data-id="'+w.id+'" onclick="watchWalk(this.dataset.id)">Ver 📍</button></div>';
+    html+='<span>🦮 '+(w.profiles&&w.profiles.full_name?w.profiles.full_name:'Paseador')+'</span>';
+    html+='<span style="font-size:11px;color:'+(isActive?'#FF6B35':'#e6a817')+';font-weight:800">'+(isActive?'🟢 En paseo':'🟡 Reservado — esperando inicio')+'</span></div>';
+    if(isActive){
+      html+='<button class="btn-watch" data-id="'+w.id+'" onclick="watchWalk(this.dataset.id)">Ver 📍</button>';
+    }
+    html+='</div>';
   });
   el.innerHTML=html;
 }
