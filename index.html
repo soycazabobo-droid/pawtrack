@@ -676,7 +676,7 @@ function sendRequest(){
 function renderWalkerHome(m){
   Promise.all([
     sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
-    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).in('status',['reserved','active']).maybeSingle()
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).or('status.eq.reserved,status.eq.active').maybeSingle()
   ]).then(function(results){
     var reqs=results[0].data||[], activeWalk=results[1].data;
     var isReserved = activeWalk && activeWalk.status==='reserved';
@@ -842,7 +842,7 @@ function loadActiveWalks(){
       return;
     }
     var dogIds=myDogs.map(function(d){ return d.id; });
-    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').in('status',['reserved','active']).in('dog_id',dogIds).then(function(res){
+    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').or('status.eq.reserved,status.eq.active').in('dog_id',dogIds).then(function(res){
       var el3=gid('active-walks');
       if(!el3) return;
       var data=res.data||[];
