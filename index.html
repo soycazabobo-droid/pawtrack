@@ -9,7 +9,7 @@
 <title>PawTrack 🐾</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <style>
 :root{
@@ -453,15 +453,18 @@ function doLogout(){
 
 function loadProfile(user){
   return sb.from('profiles').select('*').eq('id',user.id).maybeSingle().then(function(res){
-    if(!res.data){
-      var r=user.user_metadata && user.user_metadata.role ? user.user_metadata.role : 'owner';
-      var n=user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : (user.email||'Usuario');
-      return sb.from('profiles').insert({id:user.id, full_name:n, role:r, photo_url:(user.user_metadata&&user.user_metadata.avatar_url)||null, rating:null})
-        .then(function(){
-          return sb.from('profiles').select('*').eq('id',user.id).maybeSingle().then(function(r2){ return r2.data; });
-        });
-    }
-    return res.data;
+    if(res.data) return res.data;
+    // No existe perfil - crear con upsert para evitar 409
+    var r=user.user_metadata && user.user_metadata.role ? user.user_metadata.role : 'owner';
+    var n=user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : (user.email||'Usuario');
+    return sb.from('profiles').upsert({
+      id:user.id, full_name:n, role:r,
+      photo_url:(user.user_metadata&&user.user_metadata.avatar_url)||null,
+      rating:null
+    }, {onConflict:'id', ignoreDuplicates:false})
+    .then(function(){
+      return sb.from('profiles').select('*').eq('id',user.id).maybeSingle().then(function(r2){ return r2.data; });
+    });
   });
 }
 
