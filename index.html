@@ -182,6 +182,17 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
       <div class="fg"><label>Email</label><input type="email" id="ru-email" placeholder="tu@email.com"/></div>
       <div class="fg"><label>Contraseña</label><input type="password" id="ru-pass" placeholder="Mínimo 6 caracteres"/></div>
       <div class="fg"><label>URL foto de perfil (opcional)</label><input type="url" id="ru-photo" placeholder="https://i.imgur.com/foto.jpg"/></div>
+      <div id="ru-owner-fields">
+        <div class="fg">
+          <label>📍 Tu dirección (donde está tu perro)</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="ru-addr" placeholder="Ej: Av. Corrientes 1234, Buenos Aires"/>
+            <button type="button" onclick="searchRegAddr()" style="background:var(--or);color:#fff;border:none;border-radius:12px;padding:0 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;white-space:nowrap;font-size:13px">Buscar</button>
+          </div>
+          <button type="button" onclick="useGpsRegAddr()" style="width:100%;margin-top:6px;background:var(--bg);border:2px solid var(--or);border-radius:12px;padding:9px;font-size:13px;font-weight:800;cursor:pointer;color:var(--or);font-family:Nunito,sans-serif">📡 Usar mi ubicación GPS</button>
+          <p id="ru-addr-ok" style="font-size:12px;color:var(--gr);font-weight:700;margin-top:6px;text-align:center"></p>
+        </div>
+      </div>
       <div id="ru-walker-fields" class="hidden">
         <div class="fg"><label>Descripción</label><textarea id="ru-desc" placeholder="Ej: Amo los perros, 3 años de experiencia..."></textarea></div>
         <div class="fg"><label>Teléfono / WhatsApp</label><input type="text" id="ru-phone" placeholder="+54 11 1234 5678"/></div>
@@ -283,16 +294,6 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
   </div>
 </div>
 
-<!-- MODAL RESEÑAS DEL PASEADOR (solo dueños) -->
-<div id="m-reviews" class="modal hidden">
-  <div class="mbox">
-    <button class="mclose" onclick="closeModal('m-reviews')">✕</button>
-    <h2>⭐ Perfil del Paseador</h2>
-    <div id="reviews-walker-info" style="margin-bottom:16px"></div>
-    <div id="reviews-list"></div>
-  </div>
-</div>
-
 <div id="m-rating" class="modal hidden">
   <div class="mbox" style="text-align:center">
     <button class="mclose" onclick="closeModal('m-rating')">✕</button>
@@ -318,6 +319,7 @@ var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var sb = supabase.createClient(SB_URL, SB_KEY);
 
 var CU = null, CP = null;
+var regLat = -34.603, regLng = -58.381;
 var map = null, routeLine = null, uMarker = null;
 var tracking = false, gpsId = null, tmrId = null;
 var pts = [], t0 = null, dist = 0, walkId = null;
@@ -357,6 +359,37 @@ function starsHtml(n){
   return html+' <span style="font-size:12px;color:var(--soft)">('+n.toFixed(1)+')</span>';
 }
 
+function useGpsRegister(){
+  var btn = event.target;
+  var status = gid('ru-addr-status');
+  if(status) status.textContent = 'Obteniendo ubicación...';
+  if(!navigator.geolocation){ alert('GPS no disponible'); return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    regLat = pos.coords.latitude;
+    regLng = pos.coords.longitude;
+    // Reverse geocode
+    fetch('https://nominatim.openstreetmap.org/reverse?lat='+regLat+'&lon='+regLng+'&format=json&accept-language=es')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var addr = '';
+        if(d.address){
+          var parts=[];
+          if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
+          if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
+          if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
+          addr = parts.join(', ');
+        } else { addr = d.display_name||''; }
+        var inp = gid('ru-address');
+        if(inp) inp.value = addr;
+        if(status) status.textContent = '✅ Ubicación detectada: '+addr;
+      }).catch(function(){
+        if(status) status.textContent = '📍 GPS: '+regLat.toFixed(4)+', '+regLng.toFixed(4);
+      });
+  }, function(){ 
+    if(status) status.textContent = '❌ No se pudo obtener GPS. Escribí tu dirección manualmente.';
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+
 function switchTab(t){
   gid('tab-in').classList.toggle('active', t==='in');
   gid('tab-up').classList.toggle('active', t==='up');
@@ -369,6 +402,7 @@ function selRoleFn(r){
   gid('rc-owner').classList.toggle('sel', r==='owner');
   gid('rc-walker').classList.toggle('sel', r==='walker');
   gid('ru-walker-fields').classList.toggle('hidden', r!=='walker');
+  gid('ru-owner-fields').classList.toggle('hidden', r!=='owner');
 }
 function doLogin(){
   var email=gid('li-email').value.trim(), pass=gid('li-pass').value;
@@ -379,21 +413,80 @@ function doLogin(){
     btn.innerHTML='Entrar 🐾'; btn.disabled=false;
   });
 }
+// Variables para ubicacion en registro
+var regLat = -34.603, regLng = -58.381, regAddr = '';
+
+function searchRegAddr(){
+  var q = document.getElementById('ru-addr').value.trim();
+  if(!q) return;
+  var ok = document.getElementById('ru-addr-ok');
+  ok.textContent = 'Buscando...'; ok.style.color = 'var(--soft)';
+  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&accept-language=es')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d&&d.length){
+        regLat=parseFloat(d[0].lat); regLng=parseFloat(d[0].lon);
+        regAddr=d[0].display_name;
+        ok.textContent='✅ Ubicación encontrada: '+regAddr.split(',').slice(0,2).join(',');
+        ok.style.color='var(--gr)';
+      } else {
+        ok.textContent='❌ No se encontró la dirección, intenta con otra';
+        ok.style.color='var(--re)';
+      }
+    });
+}
+
+function useGpsRegAddr(){
+  if(!navigator.geolocation){ alert('GPS no disponible'); return; }
+  var ok = document.getElementById('ru-addr-ok');
+  ok.textContent = '📡 Obteniendo ubicación...'; ok.style.color='var(--soft)';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    regLat=pos.coords.latitude; regLng=pos.coords.longitude;
+    fetch('https://nominatim.openstreetmap.org/reverse?lat='+regLat+'&lon='+regLng+'&format=json&accept-language=es')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var addr='';
+        if(d.address){
+          var parts=[];
+          if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
+          if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
+          if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
+          addr=parts.join(', ');
+        }
+        regAddr=addr||d.display_name||'';
+        var inp=document.getElementById('ru-addr');
+        if(inp) inp.value=regAddr;
+        ok.textContent='✅ Ubicación GPS: '+regAddr.split(',').slice(0,2).join(',');
+        ok.style.color='var(--gr)';
+      });
+  }, function(){ ok.textContent='❌ No se pudo obtener GPS. Escribe tu dirección.'; ok.style.color='var(--re)'; },
+  {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+}
+
 function doRegister(){
   var name=gid('ru-name').value.trim(), email=gid('ru-email').value.trim(), pass=gid('ru-pass').value;
-  var photo=gid('ru-photo').value.trim(), desc=gid('ru-desc').value.trim(), phone=gid('ru-phone').value.trim();
+  var photo=gid('ru-photo').value.trim(), desc=(gid('ru-desc')&&gid('ru-desc').value)||'', phone=(gid('ru-phone')&&gid('ru-phone').value)||'';
+  var address=(gid('ru-address')&&gid('ru-address').value.trim())||'';
   if(!name||!email||!pass){ showErr('Completa nombre, email y contraseña'); return; }
   if(pass.length<6){ showErr('Contraseña minimo 6 caracteres'); return; }
   var btn=gid('btn-up'); btn.innerHTML='<span class="spinner"></span>Creando...'; btn.disabled=true;
   sb.auth.signUp({email:email, password:pass, options:{data:{full_name:name, role:selRole_}}}).then(function(res){
     if(res.error){ showErr(res.error.message); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
     if(res.data && res.data.user){
-      sb.from('profiles').upsert({id:res.data.user.id, full_name:name, role:selRole_, photo_url:photo||null, description:desc||null, phone:phone||null, rating:null});
+      sb.from('profiles').upsert({
+        id:res.data.user.id, full_name:name, role:selRole_,
+        photo_url:photo||null, description:desc||null, phone:phone||null,
+        address:address||null,
+        owner_lat:regLat||null, owner_lng:regLng||null,
+        rating:null
+      });
     }
     showErr('Cuenta creada! Ya podes iniciar sesion.');
     btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false;
   });
 }
+
+
 function doGoogle(){
   sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:window.location.href}});
 }
@@ -470,24 +563,49 @@ function renderOwnerHome(m){
 }
 
 function renderWalkersList(m){
-  m.innerHTML='<p style="font-size:16px;font-weight:800;margin-bottom:10px">🦮 Paseadores disponibles</p><div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
-  sb.from('profiles').select('*').eq('role','walker').eq('available',true).then(function(res){
+  m.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
+    '<p style="font-size:17px;font-weight:800">🏆 Top Paseadores</p>'+
+    '<span style="font-size:12px;color:var(--soft);font-weight:700">Por calificación ⭐</span></div>'+
+    '<div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
+  sb.from('profiles').select('*').eq('role','walker').order('rating',{ascending:false,nullsFirst:false}).then(function(res){
     var el=gid('wlist');
-    var data=res.data;
-    if(!data||!data.length){ el.innerHTML='<div class="empty"><span>😕</span><p>No hay paseadores disponibles aun</p></div>'; return; }
+    var data=res.data||[];
+    if(!data.length){
+      el.innerHTML=
+        '<div style="text-align:center;padding:32px;background:#fff;border-radius:20px;border:2px dashed #FFB89A">'+
+        '<div style="font-size:52px;margin-bottom:12px">🦮</div>'+
+        '<p style="font-weight:800;font-size:16px;color:var(--or);margin-bottom:8px">¡Aún no hay paseadores!</p>'+
+        '<p style="color:var(--soft);font-size:14px;font-weight:600;line-height:1.5">Cuando los paseadores se registren<br>aparecerán aquí ordenados por su calificación.</p>'+
+        '</div>';
+      return;
+    }
     var html='';
-    data.forEach(function(w){
-      html+='<div class="wcard" onclick="openReqModal(\''+w.id+'\')">';
-      html+='<div class="wc-photo">'+(w.photo_url?'<img src="'+w.photo_url+'" onerror="this.style.display=\'none\'">':'🦮')+'</div>';
-      html+='<div class="wc-info"><h4>'+w.full_name+'</h4><p>'+(w.phone||'Sin telefono')+'</p>';
-      html+='<div>'+starsHtml(w.rating)+'</div>';
-      if(w.description) html+='<div style="font-size:12px;color:var(--soft);margin-top:4px">'+w.description+'</div>';
-      html+='<button onclick="event.stopPropagation();openReviews(\''+w.id+'\',\''+w.full_name+'\',\''+(w.photo_url||'')+'\',\''+w.rating+'\')" style="background:none;border:none;color:var(--bl);font-size:12px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;padding:4px 0;text-decoration:underline">Ver reseñas 📋</button>';
-      html+='</div><button class="btn-req" onclick="event.stopPropagation();openReqModal(\''+w.id+'\')">Solicitar</button></div>';
+    data.forEach(function(w,idx){
+      var medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':'';
+      var isAvail=w.available!==false;
+      html+='<div class="wcard" onclick="openReqModal(''+w.id+'')" style="'+(isAvail?'':'opacity:.65;pointer-events:none')+'">';
+      html+='<div style="position:relative;flex-shrink:0">';
+      html+='<div class="wc-photo">'+(w.photo_url?'<img src="'+w.photo_url+'" onerror="this.parentElement.innerHTML='🦮'">':'🦮')+'</div>';
+      if(medal) html+='<div style="position:absolute;top:-5px;right:-5px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">'+medal+'</div>';
+      html+='</div>';
+      html+='<div class="wc-info" style="flex:1;min-width:0">';
+      html+='<h4 style="font-size:15px">'+w.full_name+'</h4>';
+      html+='<div style="margin:2px 0">'+starsHtml(w.rating)+'</div>';
+      if(w.phone) html+='<p>📱 '+w.phone+'</p>';
+      if(w.description) html+='<div style="font-size:12px;color:var(--soft);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+w.description+'</div>';
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-top:5px">';
+      html+='<button onclick="event.stopPropagation();openReviews(''+w.id+'',''+w.full_name+'',''+(w.photo_url||'')+'',''+(w.rating||0)+'')" style="background:none;border:none;color:var(--bl);font-size:12px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;text-decoration:underline;padding:0">📋 Reseñas</button>';
+      html+='<span style="color:#ddd">|</span>';
+      html+='<span style="font-size:11px;font-weight:800;color:'+(isAvail?'#4CAF7D':'#aaa')+'">● '+(isAvail?'Disponible':'Ocupado')+'</span>';
+      html+='</div></div>';
+      html+='<button class="btn-req" onclick="event.stopPropagation();openReqModal(''+w.id+'')" style="flex-shrink:0">Solicitar</button>';
+      html+='</div>';
     });
     el.innerHTML=html;
   });
 }
+
 
 function openReqModal(walkerId){
   sb.from('profiles').select('*').eq('id',walkerId).single().then(function(res){
@@ -755,42 +873,79 @@ function loadActiveWalks(){
 
 function watchWalk(wId){
   var m=gid('main');
-  m.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button onclick="go(\'home\')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">← Volver</button><span style="font-weight:800;color:var(--or)">📡 Paseo en vivo</span></div><div class="map-wrap" style="height:420px"><div id="map"></div><div class="map-live"><span class="live-dot"></span>EN VIVO</div></div>';
+  m.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+    '<button onclick="go('home')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">← Volver</button>'+
+    '<span style="font-weight:800;color:var(--or)">📡 Paseo en vivo</span></div>'+
+    '<div class="map-wrap" style="height:420px"><div id="map"></div>'+
+    '<div class="map-live"><span class="live-dot"></span>EN VIVO</div>'+
+    '<div id="walk-hud" style="display:none" class="map-hud">'+
+    '<div class="hud-s">📍 <span class="hud-val" id="w-dist">0.00</span> km</div>'+
+    '<div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:20px">📍 <span class="hud-val" id="w-pts">0</span> pts</div>'+
+    '</div></div>';
   setTimeout(function(){
-    initMap();
+    // Init map sin GPS del owner para no mover el centro
+    if(map){ map.remove(); map=null; uMarker=null; routeLine=null; }
+    var el=gid('map'); if(!el) return;
+    map=L.map('map',{zoomControl:false}).setView([-34.603,-58.381],15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
+    L.control.zoom({position:'topright'}).addTo(map);
+    routeLine=L.polyline([],{color:'#FF6B35',weight:6,opacity:1}).addTo(map);
+
+    // Cargar puntos existentes
     sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at').then(function(res){
-      var gps=res.data;
-      if(gps&&gps.length){
+      var gps=res.data||[];
+      var hudEl=gid('walk-hud');
+      if(gps.length){
         var lls=gps.map(function(p){ return [p.lat,p.lng]; });
         routeLine.setLatLngs(lls);
-        map.fitBounds(lls);
+        map.fitBounds(lls,{padding:[40,40]});
         var last=gps[gps.length-1];
         uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
+        if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(gps.length*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=gps.length); }
       }
+      // Suscribir a nuevos puntos GPS en tiempo real
       if(rtCh) rtCh.unsubscribe();
-      rtCh=sb.channel('walk-'+wId).on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:'walk_id=eq.'+wId},function(payload){
-        var p=payload.new;
-        routeLine.addLatLng([p.lat,p.lng]);
-        map.panTo([p.lat,p.lng]);
-        if(uMarker) uMarker.setLatLng([p.lat,p.lng]);
-        else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
-      }).subscribe();
+      rtCh=sb.channel('realtime:gps:'+wId)
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:'walk_id=eq.'+wId},function(payload){
+          var p=payload.new;
+          if(!p||!p.lat) return;
+          routeLine.addLatLng([p.lat,p.lng]);
+          map.panTo([p.lat,p.lng]);
+          if(uMarker) uMarker.setLatLng([p.lat,p.lng]);
+          else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
+          var pts2=routeLine.getLatLngs().length;
+          if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(pts2*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=pts2); }
+        })
+        .subscribe(function(status){
+          console.log('Realtime status:', status);
+        });
     });
-  }, 300);
+  }, 400);
 }
+
 
 function initMap(lat, lng){
   lat=lat||-34.603; lng=lng||-58.381;
   if(map){ map.remove(); map=null; uMarker=null; routeLine=null; }
   var el=gid('map');
   if(!el) return;
-  map=L.map('map',{zoomControl:false}).setView([lat,lng],13);
+  map=L.map('map',{zoomControl:false}).setView([lat,lng],15);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1}).addTo(map);
+  // Mostrar pin azul pulsante con ubicacion del usuario
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(function(p){
-      if(map) map.setView([p.coords.latitude,p.coords.longitude],15);
+      var la=p.coords.latitude, lo=p.coords.longitude;
+      if(!map) return;
+      map.setView([la,lo],16);
+      var myIcon=L.divIcon({
+        html:'<div style="position:relative;display:flex;align-items:center;justify-content:center">'+
+          '<div style="position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,.2);animation:pulse 1.5s infinite"></div>'+
+          '<div style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1"></div></div>',
+        iconSize:[40,40],iconAnchor:[20,20],className:''
+      });
+      L.marker([la,lo],{icon:myIcon}).addTo(map).bindPopup('📍 Tu ubicación');
     }, function(){}, {enableHighAccuracy:true,timeout:8000,maximumAge:0});
   }
 }
@@ -899,7 +1054,6 @@ function saveDog(){
 }
 
 function openReviews(walkerId, walkerName, walkerPhoto, walkerRating){
-  // Solo dueños pueden ver reseñas
   if(CP.role !== 'owner') return;
   var infoHtml='<div style="display:flex;align-items:center;gap:14px;background:var(--bg);border-radius:16px;padding:14px;margin-bottom:16px">';
   infoHtml+='<div style="width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid var(--or);display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee">';
@@ -911,10 +1065,7 @@ function openReviews(walkerId, walkerName, walkerPhoto, walkerRating){
   openModal('m-reviews');
   sb.from('ratings').select('*,profiles!ratings_owner_id_fkey(full_name,photo_url)').eq('walker_id',walkerId).order('created_at',{ascending:false}).then(function(res){
     var data=res.data||[];
-    if(!data.length){
-      gid('reviews-list').innerHTML='<div class="empty"><span>💬</span><p>Este paseador aún no tiene reseñas</p></div>';
-      return;
-    }
+    if(!data.length){ gid('reviews-list').innerHTML='<div class="empty"><span>💬</span><p>Este paseador aún no tiene reseñas</p></div>'; return; }
     var labels=['','😞 Muy malo','😕 Regular','😊 Bueno','😄 Muy bueno','🤩 Excelente!'];
     var html='<p style="font-size:13px;font-weight:800;color:var(--soft);margin-bottom:12px">'+data.length+' reseña'+(data.length!==1?'s':'')+'</p>';
     data.forEach(function(r){
@@ -922,10 +1073,10 @@ function openReviews(walkerId, walkerName, walkerPhoto, walkerRating){
       html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
       html+='<div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;border:2px solid #eee">';
       html+=(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'" style="width:100%;height:100%;object-fit:cover">':'👤')+'</div>';
-      html+='<div><strong style="font-size:13px">'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueño')+'</strong>';
-      html+='<div style="font-size:18px;line-height:1">'+starsHtml(r.score)+'</div></div>';
-      html+='<span style="margin-left:auto;font-size:11px;color:var(--soft)">'+fmtDate(r.created_at)+'</span></div>';
-      html+='<div style="font-size:13px;color:var(--soft);font-weight:700;margin-bottom:4px">'+labels[r.score]+'</div>';
+      html+='<div style="flex:1"><strong style="font-size:13px">'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueño')+'</strong>';
+      html+='<div>'+starsHtml(r.score)+'</div></div>';
+      html+='<span style="font-size:11px;color:var(--soft)">'+fmtDate(r.created_at)+'</span></div>';
+      html+='<p style="font-size:13px;font-weight:700;color:var(--or);margin-bottom:4px">'+labels[r.score]+'</p>';
       if(r.comment) html+='<p style="font-size:13px;color:var(--tx);background:#fff;border-radius:10px;padding:8px 12px;border-left:3px solid var(--or)">💬 '+r.comment+'</p>';
       html+='</div>';
     });
@@ -942,39 +1093,28 @@ function renderProfilePage(m){
   html+='</div></div>';
   html+='<div class="panel"><div class="fg"><label>Email</label><p style="font-weight:700;padding:4px 0">📧 '+(CU&&CU.email?CU.email:'')+'</p></div>';
   if(CP&&CP.phone) html+='<div class="fg"><label>Telefono</label><p style="font-weight:700;padding:4px 0">📱 '+CP.phone+'</p></div>';
-  if(CP&&CP.description) html+='<div class="fg"><label>Descripcion</label><p style="font-weight:600;font-size:14px;color:var(--soft)">'+CP.description+'</p></div>';
+  if(CP&&CP.address) html+='<div class="fg"><label>Dirección</label><p style="font-weight:600;font-size:14px">📍 '+CP.address+'</p></div>';
+  if(CP&&CP.description) html+='<div class="fg"><label>Descripción</label><p style="font-weight:600;font-size:14px;color:var(--soft)">'+CP.description+'</p></div>';
   html+='</div>';
-  // Paseador: muestra sus stats pero NO las reseñas individuales
   if(CP&&CP.role==='walker'){
-    html+='<div class="panel" id="walker-stats-panel"><h3>📊 Mis estadísticas</h3><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
+    html+='<div class="panel" id="walker-stats"><h3>📊 Mis estadísticas</h3><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
   }
   html+='<button onclick="doLogout()" style="width:100%;background:#FFF0F0;color:var(--re);border:none;border-radius:16px;padding:13px;font-size:16px;font-family:Nunito,sans-serif;font-weight:800;cursor:pointer">🚪 Cerrar sesion</button>';
   m.innerHTML=html;
-  // Cargar stats del paseador
   if(CP&&CP.role==='walker'){
     Promise.all([
       sb.from('ratings').select('score').eq('walker_id',CU.id),
-      sb.from('walks').select('id',{count:'exact'}).eq('walker_id',CU.id).eq('status','completed')
+      sb.from('walks').select('id',{count:'exact',head:true}).eq('walker_id',CU.id).eq('status','completed')
     ]).then(function(results){
-      var ratings=results[0].data||[];
-      var totalWalks=results[1].count||0;
-      var avg=0;
-      if(ratings.length){ ratings.forEach(function(r){ avg+=r.score; }); avg=avg/ratings.length; }
-      var panel=gid('walker-stats-panel');
-      if(!panel) return;
-      var html='<h3>📊 Mis estadísticas</h3>';
-      html+='<div style="display:flex;gap:10px;margin-bottom:10px">';
-      html+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center">';
-      html+='<div style="font-size:28px;font-weight:800;color:var(--or)">'+totalWalks+'</div>';
-      html+='<div style="font-size:12px;color:var(--soft);font-weight:700">Paseos completados</div></div>';
-      html+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center">';
-      html+='<div style="font-size:28px;font-weight:800;color:var(--or)">'+ratings.length+'</div>';
-      html+='<div style="font-size:12px;color:var(--soft);font-weight:700">Calificaciones</div></div>';
-      html+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center">';
-      html+='<div style="font-size:22px;font-weight:800;color:var(--or)">'+(avg>0?avg.toFixed(1)+' ⭐':'—')+'</div>';
-      html+='<div style="font-size:12px;color:var(--soft);font-weight:700">Promedio</div></div></div>';
-      html+='<p style="font-size:12px;color:var(--soft);font-weight:600;text-align:center">Los comentarios son privados para los dueños 🔒</p>';
-      panel.innerHTML=html;
+      var ratings=results[0].data||[], totalWalks=results[1].count||0;
+      var avg=0; if(ratings.length){ ratings.forEach(function(r){ avg+=r.score; }); avg=avg/ratings.length; }
+      var panel=gid('walker-stats'); if(!panel) return;
+      var html2='<h3>📊 Mis estadísticas</h3><div style="display:flex;gap:10px;margin-bottom:10px">';
+      html2+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center"><div style="font-size:26px;font-weight:800;color:var(--or)">'+totalWalks+'</div><div style="font-size:11px;color:var(--soft);font-weight:700">Paseos</div></div>';
+      html2+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center"><div style="font-size:26px;font-weight:800;color:var(--or)">'+ratings.length+'</div><div style="font-size:11px;color:var(--soft);font-weight:700">Calificaciones</div></div>';
+      html2+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--or)">'+(avg>0?avg.toFixed(1)+' ⭐':'—')+'</div><div style="font-size:11px;color:var(--soft);font-weight:700">Promedio</div></div></div>';
+      html2+='<p style="font-size:12px;color:var(--soft);font-weight:600;text-align:center">🔒 Los comentarios son privados para los dueños</p>';
+      panel.innerHTML=html2;
     });
   }
 }
