@@ -1047,7 +1047,16 @@ function stopWalk(wId){
   var st=gid('sum-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('sum-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
-  sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(){
+  sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(r){
+    if(r.error){ console.error('Error terminando walk:',r.error); return; }
+    // Marcar la solicitud como completed para que el dueño pueda calificar
+    sb.from('walk_requests').update({status:'completed'}).eq('id', r.data&&r.data[0]?r.data[0].request_id:null);
+    // Buscar request_id del walk para actualizarlo
+    sb.from('walks').select('request_id').eq('id',wid).maybeSingle().then(function(wr){
+      if(wr.data&&wr.data.request_id){
+        sb.from('walk_requests').update({status:'completed'}).eq('id',wr.data.request_id);
+      }
+    });
     console.log('Paseo terminado en DB');
   });
 }
