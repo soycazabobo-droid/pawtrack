@@ -428,13 +428,13 @@ function doRegister(){
   sb.auth.signUp({email:email, password:pass, options:{data:{full_name:name, role:selRole_}}}).then(function(res){
     if(res.error){ showErr(res.error.message); btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false; return; }
     if(res.data && res.data.user){
-      sb.from('profiles').upsert({
+      sb.from('profiles').insert({
         id:res.data.user.id, full_name:name, role:selRole_,
         photo_url:photo||null, description:desc||null, phone:phone||null,
         address:address||null,
         owner_lat:regLat||null, owner_lng:regLng||null,
         rating:null
-      });
+      }).then(function(r){ if(r.error) console.log('Profile insert:', r.error.message); });
     }
     showErr('Cuenta creada! Ya podes iniciar sesion.');
     btn.innerHTML='Crear cuenta 🐾'; btn.disabled=false;
@@ -452,13 +452,14 @@ function doLogout(){
 }
 
 function loadProfile(user){
-  return sb.from('profiles').select('*').eq('id',user.id).single().then(function(res){
+  return sb.from('profiles').select('*').eq('id',user.id).maybeSingle().then(function(res){
     if(!res.data){
       var r=user.user_metadata && user.user_metadata.role ? user.user_metadata.role : 'owner';
-      var n=user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : user.email;
-      return sb.from('profiles').insert({id:user.id, full_name:n, role:r, photo_url:(user.user_metadata&&user.user_metadata.avatar_url)||null, rating:null}).then(function(){
-        return sb.from('profiles').select('*').eq('id',user.id).single().then(function(r2){ return r2.data; });
-      });
+      var n=user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : (user.email||'Usuario');
+      return sb.from('profiles').insert({id:user.id, full_name:n, role:r, photo_url:(user.user_metadata&&user.user_metadata.avatar_url)||null, rating:null})
+        .then(function(){
+          return sb.from('profiles').select('*').eq('id',user.id).maybeSingle().then(function(r2){ return r2.data; });
+        });
     }
     return res.data;
   });
