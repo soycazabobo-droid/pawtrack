@@ -676,7 +676,9 @@ function sendRequest(){
 function renderWalkerHome(m){
   Promise.all([
     sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
-    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).or('status.eq.reserved,status.eq.active').maybeSingle()
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','reserved').maybeSingle().then(function(r1){
+      return r1.data ? Promise.resolve(r1) : sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').maybeSingle();
+    })
   ]).then(function(results){
     var reqs=results[0].data||[], activeWalk=results[1].data;
     var isReserved = activeWalk && activeWalk.status==='reserved';
@@ -834,16 +836,18 @@ function loadActiveWalks(){
   if(!el) return;
   if(!CU) return;
   // Buscar walks activos (reserved o active)
-  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').or('status.eq.reserved,status.eq.active').eq('owner_id',CU.id).then(function(res){
-    var el2=gid('active-walks');
-    if(!el2) return;
-    var data=res.data||[];
-    if(!data.length){
-      el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-    } else {
-      renderActiveWalks(el2, data);
-    }
-    setTimeout(loadActiveWalks, 5000);
+  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('owner_id',CU.id).eq('status','reserved').then(function(r1){
+    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('owner_id',CU.id).eq('status','active').then(function(r2){
+      var el2=gid('active-walks');
+      if(!el2) return;
+      var data=(r1.data||[]).concat(r2.data||[]);
+      if(!data.length){
+        el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+      } else {
+        renderActiveWalks(el2, data);
+      }
+      setTimeout(loadActiveWalks, 5000);
+    });
   });
   // Buscar walks recien completados para notificar calificacion
   sb.from('walk_requests').select('*,profiles!walk_requests_walker_id_fkey(id,full_name,photo_url)').eq('owner_id',CU.id).eq('status','completed').then(function(res){
