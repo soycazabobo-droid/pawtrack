@@ -316,7 +316,6 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 <script>
 var SB_URL = 'https://vvszrrbxfmfwlrctjwsx.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
-if(typeof supabase === 'undefined'){ document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif"><h2>⚠️ Error de conexión</h2><p>No se pudo cargar la app. Verificá tu conexión a internet y recargá la página.</p><button onclick="location.reload()" style="background:#FF6B35;color:white;border:none;padding:12px 24px;border-radius:10px;font-size:16px;cursor:pointer">🔄 Recargar</button></div>'; throw new Error('Supabase no cargó'); }
 var sb = supabase.createClient(SB_URL, SB_KEY);
 
 var CU = null, CP = null;
@@ -414,7 +413,8 @@ function useGpsRegAddr(){
   ok.textContent = '📡 Obteniendo ubicación...'; ok.style.color='var(--soft)';
   navigator.geolocation.getCurrentPosition(function(pos){
     regLat=pos.coords.latitude; regLng=pos.coords.longitude;
-, function(){ ok.textContent='❌ No se pudo obtener GPS. Escribe tu dirección.'; ok.style.color='var(--re)'; },
+    ok.textContent='✅ Ubicación obtenida'; ok.style.color='var(--gr)';
+  }, function(){ ok.textContent='❌ No se pudo obtener GPS. Escribe tu dirección.'; ok.style.color='var(--re)'; },
   {enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
 
