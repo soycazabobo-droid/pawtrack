@@ -281,7 +281,7 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
       <div class="ss"><span id="s-time">00:00</span><label>Duración</label></div>
       <div class="ss"><span id="s-pts">0</span><label>Puntos GPS</label></div>
     </div>
-    <button class="btn-save" onclick="closeModal('m-sum')">Genial! 🐾</button>
+    <button class="btn-save" onclick="closeModal('m-sum');go('home')">Genial! 🐾</button>
   </div>
 </div>
 
@@ -343,6 +343,7 @@ function hav(a,b){
   return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
 }
 function fmtT(ms){
+  if(ms<0) ms=0;
   var s=Math.floor(ms/1000), m=Math.floor(s/60), h=Math.floor(m/60);
   if(h>0) return h+':'+pad(m%60)+':'+pad(s%60);
   return pad(m)+':'+pad(s%60);
@@ -722,7 +723,7 @@ function renderWalkerHome(m){
 function respondReq(reqId, status, dogId){
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
-      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active'}).select().maybeSingle().then(function(res){
+      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active', started_at:new Date().toISOString()}).select().maybeSingle().then(function(res){
         walkId=res.data&&res.data.id?res.data.id:null;
         tracking=true;
         alert('Solicitud aceptada! El GPS se activara cuando empieces.');
@@ -851,22 +852,25 @@ function watchWalk(wId){
         uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
         if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(gps.length*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=gps.length); }
       }
-      // Suscribir a nuevos puntos GPS en tiempo real
-      if(rtCh) rtCh.unsubscribe();
-      rtCh=sb.channel('realtime:gps:'+wId)
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'gps_points',filter:'walk_id=eq.'+wId},function(payload){
-          var p=payload.new;
-          if(!p||!p.lat) return;
-          routeLine.addLatLng([p.lat,p.lng]);
-          map.panTo([p.lat,p.lng]);
-          if(uMarker) uMarker.setLatLng([p.lat,p.lng]);
-          else uMarker=L.marker([p.lat,p.lng],{icon:dogIcon()}).addTo(map);
-          var pts2=routeLine.getLatLngs().length;
-          if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(pts2*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=pts2); }
-        })
-        .subscribe(function(status){
-          console.log('Realtime status:', status);
+      // Polling cada 3 segundos para ver nuevos puntos GPS
+      var lastPtCount = gps.length;
+      if(rtCh){ clearInterval(rtCh); rtCh=null; }
+      rtCh = setInterval(function(){
+        if(!gid('map')){ clearInterval(rtCh); rtCh=null; return; }
+        sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at').then(function(r2){
+          var newGps=r2.data||[];
+          if(newGps.length > lastPtCount){
+            lastPtCount=newGps.length;
+            var lls=newGps.map(function(p){ return [p.lat,p.lng]; });
+            if(routeLine) routeLine.setLatLngs(lls);
+            var last=newGps[newGps.length-1];
+            if(map) map.panTo([last.lat,last.lng]);
+            if(uMarker) uMarker.setLatLng([last.lat,last.lng]);
+            else uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
+            if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(newGps.length*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=newGps.length); }
+          }
         });
+      }, 3000);
     });
   }, 400);
 }
@@ -958,6 +962,7 @@ function resumeWalk(){
 }
 
 function stopWalk(){
+  if(!walkId && !tracking) return;
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   clearInterval(tmrId); tmrId=null;
@@ -965,11 +970,15 @@ function stopWalk(){
   var wid=walkId;
   var finalDist=dist;
   var finalPts=pts.length;
+  // Limpiar estado ANTES de navegar
   walkId=null;
   pts=[]; dist=0; t0=null;
   if(wid){
-    sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:finalDist}).eq('id',wid);
+    sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(res){
+      if(res.error){ console.log('Error al terminar paseo:', res.error.message); }
+    });
   }
+  // Mostrar resumen
   var sd=gid('s-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
   var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('s-pts'); if(sp) sp.textContent=finalPts;
