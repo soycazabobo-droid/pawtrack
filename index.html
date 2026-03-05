@@ -723,11 +723,15 @@ function renderWalkerHome(m){
 function respondReq(reqId, status, dogId){
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
-      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active', started_at:new Date().toISOString()}).select().maybeSingle().then(function(res){
-        walkId=res.data&&res.data.id?res.data.id:null;
-        tracking=true;
-        alert('Solicitud aceptada! El GPS se activara cuando empieces.');
-        go('home');
+      // Obtener owner_id de la solicitud
+      sb.from('walk_requests').select('owner_id').eq('id',reqId).maybeSingle().then(function(rq){
+        var ownerId = rq.data && rq.data.owner_id ? rq.data.owner_id : null;
+        sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'active', started_at:new Date().toISOString()}).select().maybeSingle().then(function(res){
+          walkId=res.data&&res.data.id?res.data.id:null;
+          tracking=true;
+          alert('Solicitud aceptada! El GPS se activara cuando empieces.');
+          go('home');
+        });
       });
     } else {
       alert('Solicitud rechazada.');
@@ -800,24 +804,40 @@ function renderRequests(m){
 function loadActiveWalks(){
   var el=gid('active-walks');
   if(!el) return;
-  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').then(function(res){
+  if(!CU) return;
+  // Buscar walks activos donde el dueno es el usuario logueado
+  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').eq('owner_id',CU.id).then(function(res){
     var data=res.data;
-    if(!el) return;
+    if(!gid('active-walks')) return;
     if(!data||!data.length){
-      el.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-    } else {
-      var html='';
-      data.forEach(function(w){
-        html+='<div class="li" style="border:2px solid #FFE8D6">';
-        html+='<div class="li-av">'+(w.dogs&&w.dogs.photo_url?'<img src="'+w.dogs.photo_url+'">':(w.dogs&&w.dogs.avatar?w.dogs.avatar:'🐕'))+'</div>';
-        html+='<div class="li-info"><strong>'+(w.dogs&&w.dogs.name?w.dogs.name:'Perro')+'</strong>';
-        html+='<span>🦮 '+(w.profiles&&w.profiles.full_name?w.profiles.full_name:'Paseador')+'</span></div>';
-        html+='<button class="btn-watch" onclick="watchWalk(\''+w.id+'\')">Ver 📍</button></div>';
+      // Si no hay walks con owner_id (walks viejos), buscar por dog
+      sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').then(function(res2){
+        var el2=gid('active-walks');
+        if(!el2) return;
+        var data2=(res2.data||[]).filter(function(w){ return dogs&&dogs.some(function(d){ return d.id===w.dog_id; }); });
+        if(!data2.length){
+          el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+        } else {
+          renderActiveWalks(el2, data2);
+        }
+        setTimeout(loadActiveWalks, 5000);
       });
-      el.innerHTML=html;
+    } else {
+      renderActiveWalks(el, data);
+      setTimeout(loadActiveWalks, 5000);
     }
-    setTimeout(loadActiveWalks, 10000);
   });
+}
+function renderActiveWalks(el, data){
+  var html='';
+  data.forEach(function(w){
+    html+='<div class="li" style="border:2px solid #FFE8D6">';
+    html+='<div class="li-av">'+(w.dogs&&w.dogs.photo_url?'<img src="'+w.dogs.photo_url+'">':(w.dogs&&w.dogs.avatar?w.dogs.avatar:'🐕'))+'</div>';
+    html+='<div class="li-info"><strong>'+(w.dogs&&w.dogs.name?w.dogs.name:'Perro')+'</strong>';
+    html+='<span>🦮 '+(w.profiles&&w.profiles.full_name?w.profiles.full_name:'Paseador')+'</span></div>';
+    html+='<button class="btn-watch" data-id="'+w.id+'" onclick="watchWalk(this.dataset.id)">Ver 📍</button></div>';
+  });
+  el.innerHTML=html;
 }
 
 function watchWalk(wId){
@@ -840,38 +860,30 @@ function watchWalk(wId){
     L.control.zoom({position:'topright'}).addTo(map);
     routeLine=L.polyline([],{color:'#FF6B35',weight:6,opacity:1}).addTo(map);
 
-    // Cargar puntos existentes
-    sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at').then(function(res){
-      var gps=res.data||[];
-      var hudEl=gid('walk-hud');
-      if(gps.length){
+    // Cargar y actualizar puntos cada 2 segundos
+    var lastPtCount = 0;
+    var hudEl=gid('walk-hud');
+    if(rtCh){ clearInterval(rtCh); rtCh=null; }
+    function fetchGps(){
+      if(!gid('map')){ clearInterval(rtCh); rtCh=null; return; }
+      sb.from('gps_points').select('lat,lng,recorded_at').eq('walk_id',wId).order('recorded_at').then(function(r2){
+        var gps=r2.data||[];
+        if(!gps.length) return;
         var lls=gps.map(function(p){ return [p.lat,p.lng]; });
-        routeLine.setLatLngs(lls);
-        map.fitBounds(lls,{padding:[40,40]});
+        if(routeLine) routeLine.setLatLngs(lls);
         var last=gps[gps.length-1];
-        uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
-        if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(gps.length*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=gps.length); }
-      }
-      // Polling cada 3 segundos para ver nuevos puntos GPS
-      var lastPtCount = gps.length;
-      if(rtCh){ clearInterval(rtCh); rtCh=null; }
-      rtCh = setInterval(function(){
-        if(!gid('map')){ clearInterval(rtCh); rtCh=null; return; }
-        sb.from('gps_points').select('*').eq('walk_id',wId).order('recorded_at').then(function(r2){
-          var newGps=r2.data||[];
-          if(newGps.length > lastPtCount){
-            lastPtCount=newGps.length;
-            var lls=newGps.map(function(p){ return [p.lat,p.lng]; });
-            if(routeLine) routeLine.setLatLngs(lls);
-            var last=newGps[newGps.length-1];
-            if(map) map.panTo([last.lat,last.lng]);
-            if(uMarker) uMarker.setLatLng([last.lat,last.lng]);
-            else uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map);
-            if(hudEl){ hudEl.style.display='flex'; gid('w-dist')&&(gid('w-dist').textContent=(newGps.length*0.01).toFixed(2)); gid('w-pts')&&(gid('w-pts').textContent=newGps.length); }
-          }
-        });
-      }, 3000);
-    });
+        if(map) map.panTo([last.lat,last.lng]);
+        if(uMarker) uMarker.setLatLng([last.lat,last.lng]);
+        else { uMarker=L.marker([last.lat,last.lng],{icon:dogIcon()}).addTo(map); }
+        if(hudEl){ hudEl.style.display='flex';
+          gid('w-dist')&&(gid('w-dist').textContent=(gps.length*0.01).toFixed(2));
+          gid('w-pts')&&(gid('w-pts').textContent=gps.length);
+        }
+        lastPtCount=gps.length;
+      });
+    }
+    fetchGps();
+    rtCh=setInterval(fetchGps, 2000);
   }, 400);
 }
 
@@ -962,7 +974,6 @@ function resumeWalk(){
 }
 
 function stopWalk(){
-  if(!walkId && !tracking) return;
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   clearInterval(tmrId); tmrId=null;
@@ -970,19 +981,16 @@ function stopWalk(){
   var wid=walkId;
   var finalDist=dist;
   var finalPts=pts.length;
-  // Limpiar estado ANTES de navegar
-  walkId=null;
-  pts=[]; dist=0; t0=null;
-  if(wid){
-    sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(res){
-      if(res.error){ console.log('Error al terminar paseo:', res.error.message); }
-    });
-  }
-  // Mostrar resumen
+  walkId=null; pts=[]; dist=0; t0=null;
+  // Mostrar resumen inmediatamente
   var sd=gid('s-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
   var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('s-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
+  // Actualizar DB en paralelo
+  if(wid){
+    sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid);
+  }
 }
 
 function showShare(){
