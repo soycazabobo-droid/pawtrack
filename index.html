@@ -691,7 +691,11 @@ function renderWalkerHome(m){
     }
     m.innerHTML=html;
     initMap();
-    if(activeWalk){ walkId=activeWalk.id; tracking=true; resumeWalk(); }
+    if(activeWalk){
+      walkId=activeWalk.id;
+      tracking=true;
+      setTimeout(function(){ resumeWalk(); }, 500);
+    }
   });
 }
 
@@ -901,14 +905,28 @@ function onGpsErr(err){
 function resumeWalk(){
   if(!navigator.geolocation){ alert('Tu navegador no soporta GPS'); return; }
   if(!walkId) return;
-  pts=[]; dist=0; t0=Date.now();
-  tmrId=setInterval(function(){ var e=gid('s-time'); if(e) e.textContent=fmtT(Date.now()-t0); },1000);
-  // Pedir ubicacion inmediata primero para mostrar punto rapido
-  navigator.geolocation.getCurrentPosition(function(pos){
-    onGpsPos(pos);
-    // Luego activar el seguimiento continuo
-    gpsId=navigator.geolocation.watchPosition(onGpsPos, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
-  }, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  // Limpiar interval anterior si existe
+  if(tmrId){ clearInterval(tmrId); tmrId=null; }
+  if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
+  pts=[]; dist=0;
+  // Usar started_at de la DB para el timer real
+  sb.from('walks').select('started_at').eq('id',walkId).single().then(function(res){
+    if(res.data && res.data.started_at){
+      t0 = new Date(res.data.started_at).getTime();
+    } else {
+      t0 = Date.now();
+    }
+    tmrId=setInterval(function(){ var e=gid('s-time'); if(e) e.textContent=fmtT(Date.now()-t0); },1000);
+  });
+  // Esperar que el mapa este listo
+  function startGPS(){
+    if(!map){ setTimeout(startGPS, 300); return; }
+    navigator.geolocation.getCurrentPosition(function(pos){
+      onGpsPos(pos);
+      gpsId=navigator.geolocation.watchPosition(onGpsPos, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
+    }, onGpsErr, {enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  }
+  startGPS();
 }
 
 function stopWalk(){
@@ -917,15 +935,16 @@ function stopWalk(){
   clearInterval(tmrId); tmrId=null;
   var dur=t0 ? Date.now()-t0 : 0;
   var wid=walkId;
-  walkId=null; // limpiar ANTES de go('home') para que no recargue el paseo
+  var finalDist=dist;
+  var finalPts=pts.length;
+  walkId=null;
   pts=[]; dist=0; t0=null;
   if(wid){
-    sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:dist}).eq('id',wid);
+    sb.from('walks').update({status:'completed',ended_at:new Date().toISOString(),distance:finalDist}).eq('id',wid);
   }
-  // Mostrar resumen
-  gid('s-dist').textContent=dist.toFixed(2)+' km';
-  gid('s-time').textContent=fmtT(dur);
-  gid('s-pts').textContent=pts.length;
+  var sd=gid('s-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
+  var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
+  var sp=gid('s-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
 }
 
