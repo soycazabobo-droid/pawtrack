@@ -539,9 +539,9 @@ function renderWalkersList(m){
     data.forEach(function(w,idx){
       var medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':'';
       var isAvail=w.available!==false;
-      html+='<div class="wcard" onclick="openReqModal(''+w.id+'')" style="'+(isAvail?'':'opacity:.65;pointer-events:none')+'">';
+      html+='<div class="wcard" onclick="openReqModal(\"'+w.id+'\")" style="'+(isAvail?'':'opacity:.65;pointer-events:none')+'">';
       html+='<div style="position:relative;flex-shrink:0">';
-      html+='<div class="wc-photo">'+(w.photo_url?'<img src="'+w.photo_url+'" onerror="this.parentElement.innerHTML='🦮'">':'🦮')+'</div>';
+      html+='<div class="wc-photo">'+(w.photo_url?'<img src="'+w.photo_url+'" onerror="this.parentElement.innerHTML=String.fromCodePoint(0x1F9AE)">':'🦮')+'</div>';
       if(medal) html+='<div style="position:absolute;top:-5px;right:-5px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">'+medal+'</div>';
       html+='</div>';
       html+='<div class="wc-info" style="flex:1;min-width:0">';
@@ -550,11 +550,11 @@ function renderWalkersList(m){
       if(w.phone) html+='<p>📱 '+w.phone+'</p>';
       if(w.description) html+='<div style="font-size:12px;color:var(--soft);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+w.description+'</div>';
       html+='<div style="display:flex;align-items:center;gap:8px;margin-top:5px">';
-      html+='<button onclick="event.stopPropagation();openReviews(''+w.id+'',''+w.full_name+'',''+(w.photo_url||'')+'',''+(w.rating||0)+'')" style="background:none;border:none;color:var(--bl);font-size:12px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;text-decoration:underline;padding:0">📋 Reseñas</button>';
+      html+='<button onclick="event.stopPropagation();openReviews(\"'+w.id+'\",\"'+w.full_name+'\",\"'+(w.photo_url||'')+'\",\"'+(w.rating||0)+'\")" style="background:none;border:none;color:var(--bl);font-size:12px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;text-decoration:underline;padding:0">📋 Reseñas</button>';
       html+='<span style="color:#ddd">|</span>';
       html+='<span style="font-size:11px;font-weight:800;color:'+(isAvail?'#4CAF7D':'#aaa')+'">● '+(isAvail?'Disponible':'Ocupado')+'</span>';
       html+='</div></div>';
-      html+='<button class="btn-req" onclick="event.stopPropagation();openReqModal(''+w.id+'')" style="flex-shrink:0">Solicitar</button>';
+      html+='<button class="btn-req" onclick="event.stopPropagation();openReqModal(\"'+w.id+'\")" style="flex-shrink:0">Solicitar</button>';
       html+='</div>';
     });
     el.innerHTML=html;
@@ -798,7 +798,7 @@ function loadActiveWalks(){
 function watchWalk(wId){
   var m=gid('main');
   m.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
-    '<button onclick="go('home')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">← Volver</button>'+
+    '<button onclick="go(\'home\')" style="background:var(--bg);border:none;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif">← Volver</button>'+
     '<span style="font-weight:800;color:var(--or)">📡 Paseo en vivo</span></div>'+
     '<div class="map-wrap" style="height:420px"><div id="map"></div>'+
     '<div class="map-live"><span class="live-dot"></span>EN VIVO</div>'+
