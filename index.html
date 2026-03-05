@@ -9,7 +9,7 @@
 <title>PawTrack 🐾</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <style>
 :root{
@@ -564,7 +564,7 @@ function renderWalkersList(m){
 
 
 function openReqModal(walkerId){
-  sb.from('profiles').select('*').eq('id',walkerId).single().then(function(res){
+  sb.from('profiles').select('*').eq('id',walkerId).maybeSingle().then(function(res){
     reqWalker=res.data;
     var w=reqWalker;
     var html='<div style="display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px">';
@@ -703,7 +703,7 @@ function renderWalkerHome(m){
 function respondReq(reqId, status, dogId){
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
-      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active'}).select().single().then(function(res){
+      sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, status:'active'}).select().maybeSingle().then(function(res){
         walkId=res.data&&res.data.id?res.data.id:null;
         tracking=true;
         alert('Solicitud aceptada! El GPS se activara cuando empieces.');
@@ -911,7 +911,7 @@ function resumeWalk(){
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   pts=[]; dist=0;
   // Usar started_at de la DB para el timer real
-  sb.from('walks').select('started_at').eq('id',walkId).single().then(function(res){
+  sb.from('walks').select('started_at').eq('id',walkId).maybeSingle().then(function(res){
     if(res.data && res.data.started_at){
       t0 = new Date(res.data.started_at).getTime();
     } else {
