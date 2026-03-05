@@ -683,8 +683,8 @@ function sendRequest(){
 function renderWalkerHome(m){
   Promise.all([
     sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
-    sb.from('walks').select('*,dogs(name,avatar,photo_url),walk_requests(scheduled_at,owner_address,owner_lat,owner_lng)').eq('walker_id',CU.id).eq('status','reserved').maybeSingle().then(function(r1){
-      return r1.data ? Promise.resolve(r1) : sb.from('walks').select('*,dogs(name,avatar,photo_url),walk_requests(scheduled_at,owner_address,owner_lat,owner_lng)').eq('walker_id',CU.id).eq('status','active').maybeSingle();
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','reserved').maybeSingle().then(function(r1){
+      return r1.data ? Promise.resolve(r1) : sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').maybeSingle();
     })
   ]).then(function(results){
     var reqs=results[0].data||[], activeWalk=results[1].data;
@@ -705,26 +705,14 @@ function renderWalkerHome(m){
       html+='</div></div>';
       html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk(\''+activeWalk.id+'\')">🏁 Finalizar paseo</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
     } else if(isReserved){
-      // PASEO RESERVADO — info del perro, hora, dirección y botón para empezar
       var dog = activeWalk.dogs;
-      var req = activeWalk.walk_requests;
-      var addr = req && req.owner_address ? req.owner_address.replace('Direccion:','').replace('Dirección:','').trim() : '';
       html+='<div class="panel" style="border:2px solid var(--or)">';
       html+='<h3 style="color:var(--or)">📋 Paseo reservado</h3>';
       html+='<div class="li">';
       html+='<div class="li-av">'+(dog&&dog.photo_url?'<img src="'+dog.photo_url+'">':(dog&&dog.avatar?dog.avatar:'🐕'))+'</div>';
       html+='<div class="li-info"><strong>'+(dog&&dog.name?dog.name:'Perro')+'</strong>';
-      html+='<span>Esperando que empieces el paseo</span></div></div>';
-      if(req){
-        html+='<div style="background:rgba(255,107,53,.08);border-radius:10px;padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:6px">';
-        html+='<span style="font-size:14px;font-weight:800">🕐 '+fmtDate(req.scheduled_at)+'</span>';
-        if(addr) html+='<span style="font-size:13px;font-weight:600">📍 '+addr+'</span>';
-        else if(req.owner_lat && req.owner_lng){
-          html+='<span style="font-size:13px;font-weight:600">📍 '+req.owner_lat.toFixed(5)+', '+req.owner_lng.toFixed(5)+'</span>';
-          html+='<a href="https://www.google.com/maps?q='+req.owner_lat+','+req.owner_lng+'" target="_blank" style="font-size:12px;color:var(--or);font-weight:800;text-decoration:none">🗺️ Ver en Google Maps</a>';
-        }
-        html+='</div>';
-      }
+      html+='<span>Listo para empezar</span></div></div>';
+      html+='<div id="req-info-box" style="background:rgba(255,107,53,.08);border-radius:10px;padding:12px;margin-top:10px"><span style="color:var(--soft);font-size:13px">Cargando info...</span></div>';
       html+='<button class="btn-save" style="width:100%;margin-top:14px;font-size:16px" onclick="startWalk(\''+activeWalk.id+'\')">🚶 Empezar paseo</button>';
       html+='</div>';
       html+='<div class="map-wrap"><div id="map"></div></div>';
@@ -763,6 +751,25 @@ function renderWalkerHome(m){
       setTimeout(function(){
         if(navigator.geolocation){ resumeWalk(); }
       }, 600);
+    }
+    // Cargar info de la solicitud para el paseo reservado
+    if(isReserved && activeWalk.request_id){
+      sb.from('walk_requests').select('scheduled_at,owner_address,owner_lat,owner_lng').eq('id',activeWalk.request_id).maybeSingle().then(function(rq){
+        var box=gid('req-info-box');
+        if(!box) return;
+        var req=rq.data;
+        if(!req){ box.innerHTML='<span style="color:var(--soft);font-size:13px">Sin info de horario</span>'; return; }
+        var addr=req.owner_address?req.owner_address.replace('Direccion:','').replace('Dirección:','').trim():'';
+        var h='<div style="display:flex;flex-direction:column;gap:6px">';
+        h+='<span style="font-size:14px;font-weight:800">🕐 '+fmtDate(req.scheduled_at)+'</span>';
+        if(addr) h+='<span style="font-size:13px;font-weight:700">📍 '+addr+'</span>';
+        else if(req.owner_lat&&req.owner_lng){
+          h+='<span style="font-size:13px;font-weight:700">📍 '+req.owner_lat.toFixed(5)+', '+req.owner_lng.toFixed(5)+'</span>';
+          h+='<a href="https://www.google.com/maps?q='+req.owner_lat+','+req.owner_lng+'" target="_blank" style="font-size:12px;color:var(--or);font-weight:800;text-decoration:none">🗺️ Abrir en Google Maps</a>';
+        }
+        h+='</div>';
+        box.innerHTML=h;
+      });
     }
   });
 }
