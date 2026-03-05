@@ -676,7 +676,7 @@ function sendRequest(){
 function renderWalkerHome(m){
   Promise.all([
     sb.from('walk_requests').select('*,profiles!walk_requests_owner_id_fkey(full_name,photo_url),dogs(name,breed,avatar,photo_url)').eq('walker_id',CU.id).eq('status','pending'),
-    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).eq('status','active').maybeSingle()
+    sb.from('walks').select('*,dogs(name,avatar,photo_url)').eq('walker_id',CU.id).or('status.eq.reserved,status.eq.active').maybeSingle()
   ]).then(function(results){
     var reqs=results[0].data||[], activeWalk=results[1].data;
     var isReserved = activeWalk && activeWalk.status==='reserved';
@@ -745,10 +745,9 @@ function respondReq(reqId, status, dogId){
     if(status==='accepted'){
       sb.from('walk_requests').select('owner_id').eq('id',reqId).maybeSingle().then(function(rq){
         var ownerId = rq.data && rq.data.owner_id ? rq.data.owner_id : null;
-        sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'active', started_at:new Date().toISOString()}).select().maybeSingle().then(function(res){
+        sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'reserved'}).select().maybeSingle().then(function(res){
           walkId = res.data && res.data.id ? res.data.id : null;
-          tracking=true;
-          alert('Solicitud aceptada! El GPS se activara cuando empieces.');
+          alert('Solicitud aceptada! Cuando llegues al domicilio apreta "Empezar paseo".');
           go('home');
         });
       });
@@ -834,24 +833,42 @@ function loadActiveWalks(){
   var el=gid('active-walks');
   if(!el) return;
   if(!CU) return;
-  getDogs().then(function(myDogs){
-    if(!myDogs||!myDogs.length){
-      var el2=gid('active-walks');
-      if(el2) el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-      setTimeout(loadActiveWalks, 5000);
-      return;
+  // Buscar walks activos (reserved o active)
+  sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').or('status.eq.reserved,status.eq.active').eq('owner_id',CU.id).then(function(res){
+    var el2=gid('active-walks');
+    if(!el2) return;
+    var data=res.data||[];
+    if(!data.length){
+      el2.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
+    } else {
+      renderActiveWalks(el2, data);
     }
-    var dogIds=myDogs.map(function(d){ return d.id; });
-    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').eq('owner_id',CU.id).then(function(res){
-      var el3=gid('active-walks');
-      if(!el3) return;
-      var data=res.data||[];
-      if(!data.length){
-        el3.innerHTML='<div class="empty"><span>😴</span><p>No hay paseos activos ahora</p></div>';
-      } else {
-        renderActiveWalks(el3, data);
+    setTimeout(loadActiveWalks, 5000);
+  });
+  // Buscar walks recien completados para notificar calificacion
+  sb.from('walk_requests').select('*,profiles!walk_requests_walker_id_fkey(id,full_name,photo_url)').eq('owner_id',CU.id).eq('status','completed').then(function(res){
+    var completed=res.data||[];
+    // Ver si ya califico estos
+    sb.from('ratings').select('walk_request_id').eq('owner_id',CU.id).then(function(rr){
+      var rated={};
+      (rr.data||[]).forEach(function(r){ rated[r.walk_request_id]=true; });
+      var pendingRate=completed.filter(function(w){ return !rated[w.id]; });
+      if(pendingRate.length && gid('active-walks')){
+        var w=pendingRate[0];
+        var walker=w.profiles;
+        // Mostrar banner de calificacion si no esta ya visible
+        if(!gid('rate-banner')){
+          var banner=document.createElement('div');
+          banner.id='rate-banner';
+          banner.style.cssText='background:linear-gradient(135deg,#FFD23F,#FF6B35);border-radius:16px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer';
+          banner.innerHTML='<span style="font-size:28px">⭐</span><div style="flex:1"><strong style="color:#fff;font-size:15px">Califica a '+(walker&&walker.full_name?walker.full_name:'tu paseador')+'</strong><br><span style="color:rgba(255,255,255,.85);font-size:13px">El paseo terminó — contanos cómo fue</span></div><span style="color:#fff;font-size:20px">›</span>';
+          banner.onclick=function(){
+            openRatingModal(w.id, walker&&walker.id?walker.id:'', walker&&walker.full_name?walker.full_name:'Paseador', walker&&walker.photo_url?walker.photo_url:'');
+          };
+          var main=gid('main');
+          if(main) main.insertBefore(banner, main.firstChild);
+        }
       }
-      setTimeout(loadActiveWalks, 5000);
     });
   });
 }
