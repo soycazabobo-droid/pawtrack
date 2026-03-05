@@ -277,9 +277,9 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
   <div class="mbox" style="text-align:center">
     <h2>🎉 Paseo completado!</h2>
     <div class="sum-stats">
-      <div class="ss"><span id="s-dist">0 km</span><label>Distancia</label></div>
-      <div class="ss"><span id="s-time">00:00</span><label>Duración</label></div>
-      <div class="ss"><span id="s-pts">0</span><label>Puntos GPS</label></div>
+      <div class="ss"><span id="sum-dist">0 km</span><label>Distancia</label></div>
+      <div class="ss"><span id="sum-time">00:00</span><label>Duración</label></div>
+      <div class="ss"><span id="sum-pts">0</span><label>Puntos GPS</label></div>
     </div>
     <button class="btn-save" onclick="closeModal('m-sum');go('home')">Genial! 🐾</button>
   </div>
@@ -940,7 +940,21 @@ function onGpsPos(pos){
   if(map) map.setView([lat,lng],16);
   if(uMarker) uMarker.setLatLng([lat,lng]);
   else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
-  if(walkId) sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
+  // Guardar en DB - walkId puede haber llegado despues del primer onGpsPos
+  var currentWalkId = walkId;
+  if(currentWalkId){
+    sb.from('gps_points').insert({walk_id:currentWalkId,lat:lat,lng:lng}).then(function(r){
+      if(r.error) console.error('GPS save error:',r.error);
+    });
+  } else {
+    // walkId todavia no esta seteado, buscar en DB
+    if(CU) sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+      if(res.data && res.data.id){
+        walkId=res.data.id;
+        sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
+      }
+    });
+  }
 }
 function onGpsErr(err){
   if(err.code===1) alert('Permiso de ubicacion denegado.\nAbre ajustes del navegador y permite la ubicacion para este sitio.');
@@ -948,7 +962,14 @@ function onGpsErr(err){
 }
 function resumeWalk(){
   if(!navigator.geolocation){ alert('Tu navegador no soporta GPS'); return; }
-  if(!walkId) return;
+  // Si walkId no esta seteado, buscarlo en DB antes de continuar
+  if(!walkId){
+    if(!CU) return;
+    sb.from('walks').select('id,started_at').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+      if(res.data && res.data.id){ walkId=res.data.id; tracking=true; resumeWalk(); }
+    });
+    return;
+  }
   // Limpiar interval anterior si existe
   if(tmrId){ clearInterval(tmrId); tmrId=null; }
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
@@ -974,6 +995,14 @@ function resumeWalk(){
 }
 
 function stopWalk(){
+  // Si walkId es null (recargo la pagina), buscar el walk activo en DB primero
+  if(!walkId){
+    sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+      if(res.data && res.data.id){ walkId=res.data.id; stopWalk(); }
+      else { alert('No hay paseo activo para terminar.'); }
+    });
+    return;
+  }
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   clearInterval(tmrId); tmrId=null;
@@ -982,15 +1011,15 @@ function stopWalk(){
   var finalDist=dist;
   var finalPts=pts.length;
   walkId=null; pts=[]; dist=0; t0=null;
-  // Mostrar resumen inmediatamente
-  var sd=gid('s-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
-  var st=gid('s-time'); if(st) st.textContent=fmtT(dur);
-  var sp=gid('s-pts'); if(sp) sp.textContent=finalPts;
+  // Mostrar resumen en modal (IDs del modal, no del mapa)
+  var sd=gid('sum-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
+  var st=gid('sum-time'); if(st) st.textContent=fmtT(dur);
+  var sp=gid('sum-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
-  // Actualizar DB en paralelo
-  if(wid){
-    sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid);
-  }
+  // Actualizar DB
+  sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(){
+    console.log('Paseo terminado en DB');
+  });
 }
 
 function showShare(){
