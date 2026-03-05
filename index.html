@@ -8,10 +8,9 @@
 <meta http-equiv="Expires" content="0"/>
 <title>PawTrack 🐾</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="console.error('Supabase no cargo')"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2" onerror="console.error('Supabase CDN2 no cargo')"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="console.error('Leaflet no cargo')"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <style>
 :root{
   --or:#FF6B35;--orl:#FF8C5A;--yw:#FFD23F;
@@ -317,6 +316,7 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 <script>
 var SB_URL = 'https://vvszrrbxfmfwlrctjwsx.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
+if(typeof supabase === 'undefined'){ document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif"><h2>⚠️ Error de conexión</h2><p>No se pudo cargar la app. Verificá tu conexión a internet y recargá la página.</p><button onclick="location.reload()" style="background:#FF6B35;color:white;border:none;padding:12px 24px;border-radius:10px;font-size:16px;cursor:pointer">🔄 Recargar</button></div>'; throw new Error('Supabase no cargó'); }
 var sb = supabase.createClient(SB_URL, SB_KEY);
 
 var CU = null, CP = null;
