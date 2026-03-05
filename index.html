@@ -694,7 +694,7 @@ function renderWalkerHome(m){
       html+='<div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>';
       html+='<div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>';
       html+='</div></div>';
-      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk()">🏁 Finalizar paseo</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
+      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk(\''+activeWalk.id+'\')">🏁 Finalizar paseo</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
     } else if(isReserved){
       // PASEO RESERVADO — info del perro y botón para empezar
       var dog = activeWalk.dogs;
@@ -842,7 +842,7 @@ function loadActiveWalks(){
       return;
     }
     var dogIds=myDogs.map(function(d){ return d.id; });
-    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').in('dog_id',dogIds).then(function(res){
+    sb.from('walks').select('*,profiles!walks_walker_id_fkey(full_name,photo_url),dogs(name,avatar,photo_url)').eq('status','active').eq('owner_id',CU.id).then(function(res){
       var el3=gid('active-walks');
       if(!el3) return;
       var data=res.data||[];
@@ -1026,8 +1026,8 @@ function resumeWalk(){
   startGPS();
 }
 
-function stopWalk(){
-  // Si walkId es null (recargo la pagina), buscar el walk activo en DB primero
+function stopWalk(wId){
+  if(wId) walkId=wId;
   if(!walkId){
     sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
       if(res.data && res.data.id){ walkId=res.data.id; stopWalk(); }
@@ -1043,12 +1043,10 @@ function stopWalk(){
   var finalDist=dist;
   var finalPts=pts.length;
   walkId=null; pts=[]; dist=0; t0=null;
-  // Mostrar resumen en modal (IDs del modal, no del mapa)
   var sd=gid('sum-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
   var st=gid('sum-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('sum-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
-  // Actualizar DB
   sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(){
     console.log('Paseo terminado en DB');
   });
