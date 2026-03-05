@@ -1190,29 +1190,39 @@ window.addEventListener('DOMContentLoaded', function(){
     }
   });
 
-  setTimeout(function(){
+  function showAuth(){
+    var auth=gid('auth');
+    if(auth){ auth.classList.remove('hidden'); auth.style.display='flex'; }
+  }
+  function hideSplash(){
     var splash=gid('splash');
-    splash.classList.add('out');
+    if(splash){ splash.classList.add('out'); setTimeout(function(){ splash.style.display='none'; },600); }
+  }
+
+  // Timeout de seguridad: si algo falla en 4 segundos, mostrar auth igual
+  var safetyTimer=setTimeout(function(){
+    hideSplash(); showAuth();
+  }, 4000);
+
+  setTimeout(function(){
+    hideSplash();
     setTimeout(function(){
-      splash.style.display='none';
       sb.auth.getSession().then(function(res){
+        clearTimeout(safetyTimer);
         var session=res.data&&res.data.session?res.data.session:null;
         if(session){
           initApp(session.user).then(function(){
             if(watchParam) watchWalk(watchParam);
-          });
+          }).catch(function(){ showAuth(); });
         } else {
-          var auth=gid('auth');
-          auth.classList.remove('hidden');
-          auth.style.display='flex';
+          showAuth();
         }
       }).catch(function(){
-        var auth=gid('auth');
-        auth.classList.remove('hidden');
-        auth.style.display='flex';
+        clearTimeout(safetyTimer);
+        showAuth();
       });
     }, 600);
-  }, 2000);
+  }, 1500);
 });
 </script>
 </body>
