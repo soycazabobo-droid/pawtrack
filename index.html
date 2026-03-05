@@ -360,31 +360,15 @@ function starsHtml(n){
 }
 
 function useGpsRegister(){
-  var btn = event.target;
   var status = gid('ru-addr-status');
   if(status) status.textContent = 'Obteniendo ubicación...';
   if(!navigator.geolocation){ alert('GPS no disponible'); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
     regLat = pos.coords.latitude;
     regLng = pos.coords.longitude;
-    // Reverse geocode
-    fetch('https://nominatim.openstreetmap.org/reverse?lat='+regLat+'&lon='+regLng+'&format=json&accept-language=es')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        var addr = '';
-        if(d.address){
-          var parts=[];
-          if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
-          if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
-          if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
-          addr = parts.join(', ');
-        } else { addr = d.display_name||''; }
-        var inp = gid('ru-address');
-        if(inp) inp.value = addr;
-        if(status) status.textContent = '✅ Ubicación detectada: '+addr;
-      }).catch(function(){
-        if(status) status.textContent = '📍 GPS: '+regLat.toFixed(4)+', '+regLng.toFixed(4);
-      });
+    var inp = gid('ru-address');
+    if(inp && !inp.value) inp.value = 'Lat: '+regLat.toFixed(5)+', Lng: '+regLng.toFixed(5);
+    if(status) status.textContent = '✅ Ubicación guardada correctamente';
   }, function(){ 
     if(status) status.textContent = '❌ No se pudo obtener GPS. Escribí tu dirección manualmente.';
   }, {enableHighAccuracy:true, timeout:10000});
@@ -416,25 +400,12 @@ function doLogin(){
 // Variables para ubicacion en registro
 var regLat = -34.603, regLng = -58.381, regAddr = '';
 
-function searchRegAddr(){
-  var q = document.getElementById('ru-addr').value.trim();
-  if(!q) return;
+function searchAddrReg(){
+  var q = document.getElementById('ru-addr') ? document.getElementById('ru-addr').value.trim() : '';
   var ok = document.getElementById('ru-addr-ok');
-  ok.textContent = 'Buscando...'; ok.style.color = 'var(--soft)';
-  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&accept-language=es')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d&&d.length){
-        regLat=parseFloat(d[0].lat); regLng=parseFloat(d[0].lon);
-        regAddr=d[0].display_name;
-        ok.textContent='✅ Ubicación encontrada: '+regAddr.split(',').slice(0,2).join(',');
-        ok.style.color='var(--gr)';
-      } else {
-        ok.textContent='❌ No se encontró la dirección, intenta con otra';
-        ok.style.color='var(--re)';
-      }
-    });
+  if(ok) ok.textContent = 'Escribe tu dirección y presioná GPS 📍';
 }
+
 
 function useGpsRegAddr(){
   if(!navigator.geolocation){ alert('GPS no disponible'); return; }
@@ -442,24 +413,7 @@ function useGpsRegAddr(){
   ok.textContent = '📡 Obteniendo ubicación...'; ok.style.color='var(--soft)';
   navigator.geolocation.getCurrentPosition(function(pos){
     regLat=pos.coords.latitude; regLng=pos.coords.longitude;
-    fetch('https://nominatim.openstreetmap.org/reverse?lat='+regLat+'&lon='+regLng+'&format=json&accept-language=es')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        var addr='';
-        if(d.address){
-          var parts=[];
-          if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
-          if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
-          if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
-          addr=parts.join(', ');
-        }
-        regAddr=addr||d.display_name||'';
-        var inp=document.getElementById('ru-addr');
-        if(inp) inp.value=regAddr;
-        ok.textContent='✅ Ubicación GPS: '+regAddr.split(',').slice(0,2).join(',');
-        ok.style.color='var(--gr)';
-      });
-  }, function(){ ok.textContent='❌ No se pudo obtener GPS. Escribe tu dirección.'; ok.style.color='var(--re)'; },
+, function(){ ok.textContent='❌ No se pudo obtener GPS. Escribe tu dirección.'; ok.style.color='var(--re)'; },
   {enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
 
@@ -660,44 +614,13 @@ function initReqMap(){
 
 function reverseGeocode(lat,lng){
   var disp=gid('req-addr-display');
-  if(!disp) return;
-  disp.textContent='Obteniendo direccion...';
-  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=es')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      var addr=d.display_name||('Lat: '+lat.toFixed(4)+', Lng: '+lng.toFixed(4));
-      // Mostrar solo la parte relevante
-      if(d.address){
-        var parts=[];
-        if(d.address.road) parts.push(d.address.road+(d.address.house_number?' '+d.address.house_number:''));
-        if(d.address.suburb||d.address.neighbourhood) parts.push(d.address.suburb||d.address.neighbourhood);
-        if(d.address.city||d.address.town) parts.push(d.address.city||d.address.town);
-        addr=parts.join(', ');
-      }
-      if(disp) disp.textContent='📍 '+addr;
-      var inp=gid('req-addr');
-      if(inp&&!inp.value) inp.value=addr;
-    })
-    .catch(function(){
-      if(disp) disp.textContent='Lat: '+lat.toFixed(4)+', Lng: '+lng.toFixed(4);
-    });
+  if(disp) disp.textContent='📍 Lat: '+lat.toFixed(5)+', Lng: '+lng.toFixed(5);
 }
 
 function searchAddr(){
-  var q=gid('req-addr').value.trim();
-  if(!q) return;
-  gid('req-addr-display').textContent='Buscando...';
-  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&accept-language=es')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d&&d.length){
-        reqLat=parseFloat(d[0].lat); reqLng=parseFloat(d[0].lon);
-        reqMap.setView([reqLat,reqLng],16);
-        gid('req-addr-display').textContent='📍 '+d[0].display_name;
-      } else {
-        gid('req-addr-display').textContent='No se encontro la direccion';
-      }
-    });
+  // Busqueda deshabilitada - usar GPS o escribir direccion manualmente
+  var q=gid('req-addr');
+  if(q) gid('req-addr-display').textContent='📍 Direccion: '+q.value;
 }
 
 function useMyGps(){
