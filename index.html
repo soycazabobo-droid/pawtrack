@@ -729,7 +729,9 @@ function renderWalkerHome(m){
           html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span></div></div>';
           html+='<div style="background:rgba(255,107,53,.08);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px">';
           html+='<span style="font-size:13px;font-weight:800">🕐 '+fmtDate(r.scheduled_at)+'</span>';
-          if(r.owner_address) html+='<span style="font-size:12px;color:var(--soft)">📍 '+r.owner_address+'</span>';
+          var addr = r.owner_address ? r.owner_address.replace('Direccion:','').replace('Dirección:','').trim() : '';
+          if(addr) html+='<span style="font-size:12px;color:var(--soft)">📍 '+addr+'</span>';
+          else if(r.owner_lat && r.owner_lng) html+='<span style="font-size:12px;color:var(--soft)">📍 '+r.owner_lat.toFixed(4)+', '+r.owner_lng.toFixed(4)+'</span>';
           html+='</div>';
           html+='<div style="display:flex;gap:8px">';
           html+='<button class="btn-accept" style="flex:1" onclick="respondReq(\''+r.id+'\',\'accepted\',\''+r.dog_id+'\')">✅ Aceptar</button>';
@@ -1178,10 +1180,17 @@ function renderProfilePage(m){
   html+='<p>'+(CP&&CP.role==='owner'?'🏠 Dueño de perro':'🦮 Paseador profesional')+'</p>';
   if(CP&&CP.rating) html+='<p>'+starsHtml(CP.rating)+'</p>';
   html+='</div></div>';
-  html+='<div class="panel"><div class="fg"><label>Email</label><p style="font-weight:700;padding:4px 0">📧 '+(CU&&CU.email?CU.email:'')+'</p></div>';
-  if(CP&&CP.phone) html+='<div class="fg"><label>Telefono</label><p style="font-weight:700;padding:4px 0">📱 '+CP.phone+'</p></div>';
-  if(CP&&CP.address) html+='<div class="fg"><label>Dirección</label><p style="font-weight:600;font-size:14px">📍 '+CP.address+'</p></div>';
-  if(CP&&CP.description) html+='<div class="fg"><label>Descripción</label><p style="font-weight:600;font-size:14px;color:var(--soft)">'+CP.description+'</p></div>';
+  // Formulario editable
+  html+='<div class="panel">';
+  html+='<h3>✏️ Editar perfil</h3>';
+  html+='<div class="fg"><label>Nombre</label><input type="text" id="edit-name" value="'+(CP&&CP.full_name?CP.full_name:'')+'" placeholder="Tu nombre"/></div>';
+  html+='<div class="fg"><label>📧 Email</label><p style="font-weight:700;padding:4px 0;color:var(--soft)">'+(CU&&CU.email?CU.email:'')+'</p></div>';
+  html+='<div class="fg"><label>📱 Teléfono / WhatsApp'+(CP&&CP.role==='walker'?' *':'')+'</label><input type="text" id="edit-phone" value="'+(CP&&CP.phone?CP.phone:'')+'" placeholder="+54 11 1234 5678"/></div>';
+  if(CP&&CP.role==='walker'){
+    html+='<div class="fg"><label>Descripción</label><textarea id="edit-desc" placeholder="Ej: Amo los perros, 3 años de experiencia...">'+(CP&&CP.description?CP.description:'')+'</textarea></div>';
+  }
+  html+='<div class="fg"><label>🔗 Foto (URL)</label><input type="text" id="edit-photo" value="'+(CP&&CP.photo_url?CP.photo_url:'')+'" placeholder="https://..."/></div>';
+  html+='<button class="btn-save" onclick="saveProfile()" style="width:100%">💾 Guardar cambios</button>';
   html+='</div>';
   if(CP&&CP.role==='walker'){
     html+='<div class="panel" id="walker-stats"><h3>📊 Mis estadísticas</h3><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
@@ -1204,6 +1213,27 @@ function renderProfilePage(m){
       panel.innerHTML=html2;
     });
   }
+}
+
+function saveProfile(){
+  var name=gid('edit-name')&&gid('edit-name').value.trim();
+  var phone=gid('edit-phone')&&gid('edit-phone').value.trim();
+  var photo=gid('edit-photo')&&gid('edit-photo').value.trim();
+  var desc=gid('edit-desc')&&gid('edit-desc').value.trim();
+  if(!name){ alert('El nombre no puede estar vacío'); return; }
+  if(CP&&CP.role==='walker' && !phone){ alert('El teléfono es obligatorio para paseadores'); return; }
+  var btn=document.querySelector('#main .btn-save');
+  if(btn){ btn.textContent='Guardando...'; btn.disabled=true; }
+  var updates={full_name:name, phone:phone||null, photo_url:photo||null};
+  if(desc!==undefined) updates.description=desc||null;
+  sb.from('profiles').update(updates).eq('id',CU.id).then(function(res){
+    if(btn){ btn.textContent='💾 Guardar cambios'; btn.disabled=false; }
+    if(res.error){ alert('Error: '+res.error.message); return; }
+    CP.full_name=name; CP.phone=phone; CP.photo_url=photo;
+    if(desc!==undefined) CP.description=desc;
+    alert('Perfil actualizado!');
+    go('profile');
+  });
 }
 
 function openRatingModal(reqId,walkerId,walkerName,walkerPhoto){
