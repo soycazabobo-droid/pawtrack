@@ -448,7 +448,7 @@ function doGoogle(){
   sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:window.location.href}});
 }
 function doLogout(){
-  if(tracking) stopWalk();
+  if(tracking && walkId) stopWalk(walkId);
   if(rtCh) rtCh.unsubscribe();
   sb.auth.signOut();
 }
@@ -749,6 +749,7 @@ function respondReq(reqId, status, dogId){
         var ownerId = rq.data && rq.data.owner_id ? rq.data.owner_id : null;
         sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'reserved'}).select().maybeSingle().then(function(res){
           walkId = res.data && res.data.id ? res.data.id : null;
+          tracking = false; // No activo hasta que el paseador aprete Empezar
           alert('Solicitud aceptada! Cuando llegues al domicilio apreta "Empezar paseo".');
           go('home');
         });
