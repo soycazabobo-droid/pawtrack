@@ -471,6 +471,19 @@ function loadProfile(user){
   });
 }
 
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+
+function sendNotif(title, body, icon){
+  if(!('Notification' in window)) return;
+  if(Notification.permission!=='granted') return;
+  try { new Notification(title, {body:body, icon:icon||'🐾'}); } catch(e){}
+}
+
 function initApp(user){
   CU=user;
   return loadProfile(user).then(function(profile){
@@ -482,9 +495,29 @@ function initApp(user){
     gid('h-role').textContent = CP.role==='owner' ? '🏠 Dueño' : '🦮 Paseador';
     if(CP.role==='walker'){
       gid('nav-walkers').innerHTML='📍<span>Mis Paseos</span>';
+      // Pedir permiso de notificaciones al paseador
+      requestNotifPermission();
+      // Escuchar nuevas solicitudes en tiempo real
+      listenForNewRequests();
     }
     go('home');
   });
+}
+
+var listenCh = null;
+function listenForNewRequests(){
+  if(listenCh) listenCh.unsubscribe();
+  listenCh = sb.channel('walker-notifs-'+CU.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'walk_requests',filter:'walker_id=eq.'+CU.id}, function(payload){
+      var r = payload.new;
+      sendNotif('🐾 Nueva solicitud de paseo!', 'Fecha: '+fmtDate(r.scheduled_at)+(r.owner_address?' · '+r.owner_address:''));
+      // Si la app esta abierta, recargar home para mostrar la solicitud
+      if(CP && CP.role==='walker'){
+        var m=gid('main');
+        if(m) renderWalkerHome(m);
+      }
+    })
+    .subscribe();
 }
 
 function go(page){
@@ -531,6 +564,10 @@ function renderWalkersList(m){
     '<span style="font-size:12px;color:var(--soft);font-weight:700">Por calificación ⭐</span></div>'+
     '<div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
   sb.from('profiles').select('*').eq('role','walker').order('rating',{ascending:false,nullsFirst:false}).then(function(res){
+    // Tambien traer conteo de ratings para cada paseador
+    sb.from('ratings').select('walker_id').then(function(allRatings){
+      var countMap={};
+      (allRatings.data||[]).forEach(function(r){ countMap[r.walker_id]=(countMap[r.walker_id]||0)+1; });
     var el=gid('wlist');
     var data=res.data||[];
     if(!data.length){
@@ -553,7 +590,7 @@ function renderWalkersList(m){
       html+='</div>';
       html+='<div class="wc-info" style="flex:1;min-width:0">';
       html+='<h4 style="font-size:15px">'+w.full_name+'</h4>';
-      html+='<div style="margin:2px 0">'+starsHtml(w.rating)+'</div>';
+      html+='<div style="margin:2px 0">'+starsHtml(w.rating||0, countMap[w.id]||0)+'</div>';
       if(w.phone) html+='<p>📱 '+w.phone+'</p>';
       if(w.description) html+='<div style="font-size:12px;color:var(--soft);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+w.description+'</div>';
       html+='<div style="display:flex;align-items:center;gap:8px;margin-top:5px">';
@@ -564,7 +601,8 @@ function renderWalkersList(m){
       html+='<button class="btn-req" data-id="'+w.id+'" onclick="event.stopPropagation();openReqModal(this.dataset.id)" style="flex-shrink:0">Solicitar</button>';
       html+='</div>';
     });
-    el.innerHTML=html;
+      el.innerHTML=html;
+    }); // end allRatings
   });
 }
 
@@ -777,6 +815,8 @@ function renderWalkerHome(m){
 function respondReq(reqId, status, dogId){
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
+      // Notif al paseador confirmando
+      sendNotif('✅ Solicitud aceptada', 'Recordá llegar a tiempo al domicilio del dueño');
       sb.from('walk_requests').select('owner_id').eq('id',reqId).maybeSingle().then(function(rq){
         var ownerId = rq.data && rq.data.owner_id ? rq.data.owner_id : null;
         sb.from('walks').insert({request_id:reqId, walker_id:CU.id, dog_id:dogId, owner_id:ownerId, status:'reserved'}).select().maybeSingle().then(function(res){
@@ -1168,7 +1208,7 @@ function openReviews(walkerId, walkerName, walkerPhoto, walkerRating){
   infoHtml+='<div style="width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid var(--or);display:flex;align-items:center;justify-content:center;font-size:28px;background:#eee">';
   infoHtml+=(walkerPhoto?'<img src="'+walkerPhoto+'" style="width:100%;height:100%;object-fit:cover">':'🦮')+'</div>';
   infoHtml+='<div><strong style="font-size:17px;display:block">'+walkerName+'</strong>';
-  infoHtml+='<div style="margin-top:4px">'+starsHtml(parseFloat(walkerRating)||0)+'</div></div></div>';
+  infoHtml+='<div style="margin-top:4px" id="rev-rating-line">'+starsHtml(parseFloat(walkerRating)||0)+'</div></div></div>';
   gid('reviews-walker-info').innerHTML=infoHtml;
   gid('reviews-list').innerHTML='<div class="empty"><span>⏳</span><p>Cargando reseñas...</p></div>';
   openModal('m-reviews');
@@ -1189,6 +1229,9 @@ function openReviews(walkerId, walkerName, walkerPhoto, walkerRating){
       if(r.comment) html+='<p style="font-size:13px;color:var(--tx);background:#fff;border-radius:10px;padding:8px 12px;border-left:3px solid var(--or)">💬 '+r.comment+'</p>';
       html+='</div>';
     });
+    // Actualizar rating con count real
+    var revLine = gid('rev-rating-line');
+    if(revLine) revLine.innerHTML = starsHtml(parseFloat(walkerRating)||0, data.length);
     gid('reviews-list').innerHTML=html;
   });
 }
@@ -1198,7 +1241,9 @@ function renderProfilePage(m){
   html+='<div class="hc-av">'+(CP&&CP.photo_url?'<img src="'+CP.photo_url+'">'  :'👤')+'</div>';
   html+='<div class="hc-info"><h2>'+(CP&&CP.full_name?CP.full_name:'Usuario')+'</h2>';
   html+='<p>'+(CP&&CP.role==='owner'?'🏠 Dueño de perro':'🦮 Paseador profesional')+'</p>';
-  if(CP&&CP.rating) html+='<p>'+starsHtml(CP.rating)+'</p>';
+  if(CP&&CP.role==='walker'){
+    html+='<div id="profile-rating-hero" style="margin-top:4px"><span style="font-size:12px;opacity:.8">Cargando calificación...</span></div>';
+  }
   html+='</div></div>';
   // Formulario editable
   html+='<div class="panel">';
@@ -1231,6 +1276,9 @@ function renderProfilePage(m){
       html2+='<div style="flex:1;background:var(--bg);border-radius:14px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--or)">'+(avg>0?avg.toFixed(1)+' ⭐':'—')+'</div><div style="font-size:11px;color:var(--soft);font-weight:700">Promedio</div></div></div>';
       html2+='<p style="font-size:12px;color:var(--soft);font-weight:600;text-align:center">🔒 Los comentarios son privados para los dueños</p>';
       panel.innerHTML=html2;
+      // Actualizar rating en hero card
+      var heroRating=gid('profile-rating-hero');
+      if(heroRating) heroRating.innerHTML=starsHtml(avg>0?parseFloat(avg.toFixed(1)):0, ratings.length);
     });
   }
 }
