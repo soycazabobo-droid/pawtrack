@@ -351,7 +351,17 @@ function fmtT(ms){
 function pad(n){ return String(n).padStart(2,'0'); }
 function fmtDate(d){
   if(!d) return '';
-  return new Date(d).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+  // Supabase guarda en UTC, convertir a Argentina (UTC-3)
+  var date = new Date(d);
+  return date.toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
+}
+function fmtDateInput(d){
+  // Para mostrar en input datetime-local (local del usuario)
+  if(!d) return '';
+  var date = new Date(d);
+  var offset = date.getTimezoneOffset();
+  var local = new Date(date.getTime() - offset*60000);
+  return local.toISOString().slice(0,16);
 }
 function starsHtml(n){
   if(!n || n===0) return '<span style="color:var(--soft);font-size:12px">Sin calificaciones</span>';
@@ -700,7 +710,13 @@ function sendRequest(){
     return; 
   }
   var scheduled;
-  try { scheduled=new Date(date).toISOString(); } catch(e){ scheduled=new Date().toISOString(); }
+  try {
+    // date viene del input datetime-local en hora local del usuario
+    // lo guardamos directamente como string con timezone Argentina
+    var d = new Date(date);
+    // Agregar offset de Argentina si el navegador no esta en AR
+    scheduled = d.toISOString();
+  } catch(e){ scheduled=new Date().toISOString(); }
   sb.from('walk_requests').insert({
     owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
     scheduled_at:scheduled,
