@@ -363,12 +363,22 @@ function fmtDateInput(d){
   var local = new Date(date.getTime() - offset*60000);
   return local.toISOString().slice(0,16);
 }
-function starsHtml(n){
-  if(!n || n===0) return '<span style="color:var(--soft);font-size:12px">Sin calificaciones</span>';
-  var full=Math.round(n), html='';
+function starsHtml(n, count){
+  if(!n || n===0){
+    return '<span style="color:#ddd;font-size:14px;letter-spacing:2px">☆☆☆☆☆</span>'+
+           '<span style="color:var(--soft);font-size:11px;margin-left:4px">Sin calificaciones</span>';
+  }
+  var full=Math.floor(n), half=(n-full)>=0.5;
+  var pct=Math.round((n/5)*100);
+  var html='<span style="font-size:14px;letter-spacing:1px">';
   for(var i=0;i<full;i++) html+='⭐';
-  for(var j=full;j<5;j++) html+='☆';
-  return html+' <span style="font-size:12px;color:var(--soft)">('+n.toFixed(1)+')</span>';
+  if(half) html+='✨';
+  for(var j=full+(half?1:0);j<5;j++) html+='<span style="color:#ddd">☆</span>';
+  html+='</span>';
+  html+='<span style="font-size:11px;color:var(--soft);margin-left:4px">'+n.toFixed(1)+' ('+pct+'%';
+  if(count) html+=' · '+count+(count===1?' reseña':' reseñas');
+  html+=')</span>';
+  return html;
 }
 
 function useGpsRegister(){
@@ -711,11 +721,9 @@ function sendRequest(){
   }
   var scheduled;
   try {
-    // date viene del input datetime-local en hora local del usuario
-    // lo guardamos directamente como string con timezone Argentina
-    var d = new Date(date);
-    // Agregar offset de Argentina si el navegador no esta en AR
-    scheduled = d.toISOString();
+    // date viene del input datetime-local como "YYYY-MM-DDTHH:MM" sin timezone
+    // Agregamos -03:00 para que Supabase lo guarde en UTC correctamente
+    scheduled = date + ':00-03:00';
   } catch(e){ scheduled=new Date().toISOString(); }
   sb.from('walk_requests').insert({
     owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
@@ -791,8 +799,8 @@ function renderWalkerHome(m){
           if(mapsUrl) html+='<a href="'+mapsUrl+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:800;text-decoration:none;display:block;margin-top:4px">🗺️ Ver en Google Maps</a>';
           html+='</div>';
           html+='<div style="display:flex;gap:8px">';
-          html+='<button class="btn-accept" style="flex:1;padding:11px" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar</button>';
-          html+='<button class="btn-reject" style="flex:1;padding:11px" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="rejected">❌ Rechazar</button>';
+          html+='<button style="flex:1;padding:13px;background:linear-gradient(135deg,#4CAF7D,#3a9165);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar paseo</button>';
+          html+='<button style="flex:1;padding:13px;background:linear-gradient(135deg,#FF4757,#c0392b);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="rejected">❌ Rechazar</button>';
           html+='</div></div>';
         });
       } else {
@@ -1111,7 +1119,6 @@ function onGpsErr(err){
 }
 function resumeWalk(){
   if(!navigator.geolocation){ alert('Tu navegador no soporta GPS'); return; }
-  // Si walkId no esta seteado, buscarlo en DB antes de continuar
   if(!walkId){
     if(!CU) return;
     sb.from('walks').select('id,started_at').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
@@ -1119,20 +1126,25 @@ function resumeWalk(){
     });
     return;
   }
-  // Limpiar interval anterior si existe
   if(tmrId){ clearInterval(tmrId); tmrId=null; }
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   pts=[]; dist=0;
   // Usar started_at de la DB para el timer real
   sb.from('walks').select('started_at').eq('id',walkId).maybeSingle().then(function(res){
-    if(res.data && res.data.started_at){
-      t0 = new Date(res.data.started_at).getTime();
-    } else {
-      t0 = Date.now();
+    t0 = res.data && res.data.started_at ? new Date(res.data.started_at).getTime() : Date.now();
+    // Arrancar timer - intentar varias veces hasta que el elemento exista
+    function startTimer(){
+      var e=gid('s-time');
+      if(e){ 
+        e.textContent=fmtT(Date.now()-t0);
+        tmrId=setInterval(function(){ var el=gid('s-time'); if(el) el.textContent=fmtT(Date.now()-t0); },1000);
+      } else {
+        setTimeout(startTimer, 300);
+      }
     }
-    tmrId=setInterval(function(){ var e=gid('s-time'); if(e) e.textContent=fmtT(Date.now()-t0); },1000);
+    startTimer();
   });
-  // Esperar que el mapa este listo
+  // Arrancar GPS - esperar que el mapa este listo
   function startGPS(){
     if(!map){ setTimeout(startGPS, 300); return; }
     navigator.geolocation.getCurrentPosition(function(pos){
@@ -1143,40 +1155,53 @@ function resumeWalk(){
   startGPS();
 }
 
+
 function stopWalk(wId){
-  if(wId) walkId=wId;
-  if(!walkId){
-    sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
-      if(res.data && res.data.id){ walkId=res.data.id; stopWalk(); }
+  // Usar el ID pasado como parametro, o buscar en DB
+  var targetId = wId || walkId;
+  if(!targetId){
+    sb.from('walks').select('id,request_id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+      if(res.data && res.data.id){ stopWalkExecute(res.data.id, res.data.request_id); }
       else { alert('No hay paseo activo para terminar.'); }
     });
     return;
   }
+  // Buscar request_id y ejecutar
+  sb.from('walks').select('request_id').eq('id',targetId).maybeSingle().then(function(res){
+    var reqId = res.data && res.data.request_id ? res.data.request_id : null;
+    stopWalkExecute(targetId, reqId);
+  });
+}
+
+function stopWalkExecute(wid, reqId){
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
-  clearInterval(tmrId); tmrId=null;
-  var dur=t0 ? Date.now()-t0 : 0;
-  var wid=walkId;
-  var finalDist=dist;
-  var finalPts=pts.length;
+  if(tmrId){ clearInterval(tmrId); tmrId=null; }
+  var dur = t0 ? Date.now()-t0 : 0;
+  var finalDist = dist;
+  var finalPts = pts.length;
   walkId=null; pts=[]; dist=0; t0=null;
+  // Mostrar modal resumen
   var sd=gid('sum-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
   var st=gid('sum-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('sum-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
-  // Primero buscar el request_id, despues actualizar todo
-  sb.from('walks').select('request_id').eq('id',wid).maybeSingle().then(function(wr){
-    var reqId = wr.data && wr.data.request_id ? wr.data.request_id : null;
-    // Marcar walk como completed
-    sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid);
-    // Marcar walk_request como completed para que el dueño pueda calificar
-    if(reqId){
-      sb.from('walk_requests').update({status:'completed'}).eq('id',reqId).then(function(r){
-        if(r.error) console.error('Error marcando request:', r.error);
-        else console.log('Walk request marcada como completed, reqId:', reqId);
-      });
-    }
+  // Actualizar DB
+  sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(r){
+    if(r.error) console.error('Error completando walk:', r.error);
   });
+  if(reqId){
+    sb.from('walk_requests').update({status:'completed'}).eq('id',reqId).then(function(r){
+      if(r.error) console.error('Error completando request:', r.error);
+    });
+  } else {
+    // Buscar request_id por si no vino
+    sb.from('walks').select('request_id').eq('id',wid).maybeSingle().then(function(res){
+      if(res.data && res.data.request_id){
+        sb.from('walk_requests').update({status:'completed'}).eq('id',res.data.request_id);
+      }
+    });
+  }
 }
 
 function showShare(){
