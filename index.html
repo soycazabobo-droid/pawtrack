@@ -584,10 +584,19 @@ function renderWalkersList(m){
     '<span style="font-size:12px;color:var(--soft);font-weight:700">Por calificación ⭐</span></div>'+
     '<div id="wlist"><div class="empty"><span>⏳</span><p>Cargando...</p></div></div>';
   sb.from('profiles').select('*').eq('role','walker').order('rating',{ascending:false,nullsFirst:false}).then(function(res){
-    // Tambien traer conteo de ratings para cada paseador
-    sb.from('ratings').select('walker_id').then(function(allRatings){
-      var countMap={};
-      (allRatings.data||[]).forEach(function(r){ countMap[r.walker_id]=(countMap[r.walker_id]||0)+1; });
+    // Traer ratings con score para recalcular promedio real
+    sb.from('ratings').select('walker_id,score').then(function(allRatings){
+      var countMap={}, sumMap={};
+      (allRatings.data||[]).forEach(function(r){
+        countMap[r.walker_id]=(countMap[r.walker_id]||0)+1;
+        sumMap[r.walker_id]=(sumMap[r.walker_id]||0)+r.score;
+      });
+      // Si el perfil tiene rating null pero hay calificaciones, recalcular
+      (res.data||[]).forEach(function(w){
+        if(countMap[w.id] && countMap[w.id]>0){
+          w.rating = Math.round((sumMap[w.id]/countMap[w.id])*10)/10;
+        }
+      });
     var el=gid('wlist');
     var data=res.data||[];
     if(!data.length){
@@ -723,7 +732,18 @@ function sendRequest(){
   try {
     // date viene del input datetime-local como "YYYY-MM-DDTHH:MM" sin timezone
     // Agregamos -03:00 para que Supabase lo guarde en UTC correctamente
-    scheduled = date + ':00-03:00';
+    // date = "2026-03-06T22:00" (hora local Argentina del input)
+    // Parseamos manualmente para evitar confusion de timezones
+    var parts = date.split('T');
+    var dateParts = parts[0].split('-');
+    var timeParts = parts[1].split(':');
+    var d = new Date(
+      parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2]),
+      parseInt(timeParts[0]), parseInt(timeParts[1]), 0
+    );
+    // Sumar 3 horas para convertir AR(UTC-3) a UTC
+    d.setHours(d.getHours() + 3);
+    scheduled = d.toISOString();
   } catch(e){ scheduled=new Date().toISOString(); }
   sb.from('walk_requests').insert({
     owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
@@ -788,20 +808,23 @@ function renderWalkerHome(m){
           var coordText = (r.owner_lat && r.owner_lng) ? r.owner_lat.toFixed(4)+', '+r.owner_lng.toFixed(4) : '';
           var mapsUrl = (r.owner_lat && r.owner_lng) ? 'https://www.google.com/maps?q='+r.owner_lat+','+r.owner_lng : '';
           var displayAddr = addr || coordText || 'Sin dirección';
-          html+='<div style="background:#fff;border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid #FFE8D6">';
-          html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
-          html+='<div class="li-av">'+(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'">':'👤')+'</div>';
-          html+='<div style="flex:1"><strong style="font-size:14px">'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueño')+'</strong>';
-          html+='<div style="font-size:12px;color:var(--soft)">'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</div></div></div>';
-          html+='<div style="background:rgba(255,107,53,.08);border-radius:12px;padding:10px;margin-bottom:10px">';
-          html+='<div style="font-size:14px;font-weight:800;color:var(--or);margin-bottom:4px">🕐 '+fmtDate(r.scheduled_at)+'</div>';
-          html+='<div style="font-size:13px;font-weight:700">📍 '+displayAddr+'</div>';
-          if(mapsUrl) html+='<a href="'+mapsUrl+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:800;text-decoration:none;display:block;margin-top:4px">🗺️ Ver en Google Maps</a>';
+          html+='<div style="background:#fff;border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 4px 16px rgba(255,107,53,.12);border-left:4px solid var(--or)">';
+          // Fila: avatar + nombre + perro
+          html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+          html+='<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--or);display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg)">';
+          html+=(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'" style="width:100%;height:100%;object-fit:cover">':'👤');
+          html+='</div><div><strong style="font-size:15px;display:block">'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueño')+'</strong>';
+          html+='<span style="font-size:12px;color:var(--soft)">'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span></div></div>';
+          // Info hora y lugar
+          html+='<div style="background:linear-gradient(135deg,rgba(255,107,53,.08),rgba(255,210,63,.08));border-radius:12px;padding:12px;margin-bottom:12px">';
+          html+='<div style="font-size:16px;font-weight:800;color:var(--or);margin-bottom:6px">🕐 '+fmtDate(r.scheduled_at)+'</div>';
+          html+='<div style="font-size:13px;font-weight:700;color:var(--tx)">📍 '+displayAddr+'</div>';
+          if(mapsUrl) html+='<a href="'+mapsUrl+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:800;text-decoration:none;display:inline-block;margin-top:6px;background:rgba(59,130,246,.1);padding:4px 10px;border-radius:8px">🗺️ Abrir Google Maps</a>';
           html+='</div>';
-          html+='<div style="display:flex;gap:8px">';
-          html+='<button style="flex:1;padding:13px;background:linear-gradient(135deg,#4CAF7D,#3a9165);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar paseo</button>';
-          html+='<button style="flex:1;padding:13px;background:linear-gradient(135deg,#FF4757,#c0392b);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="rejected">❌ Rechazar</button>';
-          html+='</div></div>';
+          // Botones grandes apilados verticalmente en mobile
+          html+='<button style="width:100%;padding:14px;background:linear-gradient(135deg,#4CAF7D,#3a9165);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;margin-bottom:8px;box-shadow:0 4px 12px rgba(76,175,125,.4)" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar paseo</button>';
+          html+='<button style="width:100%;padding:12px;background:#fff;color:var(--re);border:2px solid var(--re);border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="rejected">❌ Rechazar solicitud</button>';
+          html+='</div>';
         });
       } else {
         html+='<div class="empty"><span>📭</span><p>No hay solicitudes pendientes</p></div>';
@@ -1097,15 +1120,22 @@ function onGpsPos(pos){
   if(map) map.setView([lat,lng],16);
   if(uMarker) uMarker.setLatLng([lat,lng]);
   else uMarker=L.marker([lat,lng],{icon:dogIcon()}).addTo(map);
-  // Guardar en DB - walkId puede haber llegado despues del primer onGpsPos
-  var currentWalkId = walkId;
-  if(currentWalkId){
-    sb.from('gps_points').insert({walk_id:currentWalkId,lat:lat,lng:lng}).then(function(r){
-      if(r.error) console.error('GPS save error:',r.error);
+  // Solo guardar si hay walkId valido y tracking activo
+  if(!tracking) return;
+  if(walkId){
+    sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng}).then(function(r){
+      if(r.error){
+        // Si el walk no existe en DB, buscar el correcto
+        if(r.error.code==='23503'){
+          walkId=null;
+          if(CU) sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+            if(res.data) walkId=res.data.id;
+          });
+        }
+      }
     });
-  } else {
-    // walkId todavia no esta seteado, buscar en DB
-    if(CU) sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
+  } else if(CU){
+    sb.from('walks').select('id').eq('walker_id',CU.id).eq('status','active').maybeSingle().then(function(res){
       if(res.data && res.data.id){
         walkId=res.data.id;
         sb.from('gps_points').insert({walk_id:walkId,lat:lat,lng:lng});
@@ -1174,34 +1204,40 @@ function stopWalk(wId){
 }
 
 function stopWalkExecute(wid, reqId){
+  console.log('stopWalkExecute:', wid, reqId);
   tracking=false;
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   if(tmrId){ clearInterval(tmrId); tmrId=null; }
   var dur = t0 ? Date.now()-t0 : 0;
-  var finalDist = dist;
+  var finalDist = parseFloat(dist.toFixed(2));
   var finalPts = pts.length;
   walkId=null; pts=[]; dist=0; t0=null;
-  // Mostrar modal resumen
-  var sd=gid('sum-dist'); if(sd) sd.textContent=finalDist.toFixed(2)+' km';
+  // Mostrar modal resumen inmediatamente
+  var sd=gid('sum-dist'); if(sd) sd.textContent=finalDist+' km';
   var st=gid('sum-time'); if(st) st.textContent=fmtT(dur);
   var sp=gid('sum-pts'); if(sp) sp.textContent=finalPts;
   openModal('m-sum');
-  // Actualizar DB
+  // Actualizar walk en DB
   sb.from('walks').update({status:'completed', ended_at:new Date().toISOString(), distance:finalDist}).eq('id',wid).then(function(r){
-    if(r.error) console.error('Error completando walk:', r.error);
+    if(r.error){ console.error('Error walk:', r.error.message); return; }
+    console.log('Walk completado OK');
+    // Buscar request_id y completar la solicitud
+    var rId = reqId;
+    if(rId){
+      sb.from('walk_requests').update({status:'completed'}).eq('id',rId).then(function(r2){
+        if(r2.error) console.error('Error request:', r2.error.message);
+        else console.log('Walk request completada OK');
+      });
+    } else {
+      sb.from('walks').select('request_id').eq('id',wid).maybeSingle().then(function(res){
+        if(res.data && res.data.request_id){
+          sb.from('walk_requests').update({status:'completed'}).eq('id',res.data.request_id).then(function(r2){
+            console.log('Walk request completada por lookup OK');
+          });
+        }
+      });
+    }
   });
-  if(reqId){
-    sb.from('walk_requests').update({status:'completed'}).eq('id',reqId).then(function(r){
-      if(r.error) console.error('Error completando request:', r.error);
-    });
-  } else {
-    // Buscar request_id por si no vino
-    sb.from('walks').select('request_id').eq('id',wid).maybeSingle().then(function(res){
-      if(res.data && res.data.request_id){
-        sb.from('walk_requests').update({status:'completed'}).eq('id',res.data.request_id);
-      }
-    });
-  }
 }
 
 function showShare(){
