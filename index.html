@@ -93,6 +93,10 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 .share-btn{background:linear-gradient(135deg,var(--bl),#1d4ed8);color:#fff;font-size:14px;padding:11px 16px;}
 .panel{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);}
 .panel h3{font-size:15px;font-weight:800;margin-bottom:13px;}
+.dog-tag{padding:7px 12px;border:2px solid #e0e0e0;border-radius:20px;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;color:var(--tx);transition:all .2s;}
+.dog-tag.sel{background:var(--or);color:#fff;border-color:var(--or);}
+.rev-tag{padding:7px 14px;border:2px solid #e0e0e0;border-radius:20px;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;color:var(--tx);transition:all .2s;}
+.rev-tag.sel{background:linear-gradient(135deg,#FFD23F,#FF6B35);color:#fff;border-color:#FF6B35;}
 .empty{text-align:center;padding:22px;color:var(--soft);}
 .empty span{font-size:34px;display:block;margin-bottom:8px;}
 .empty p{font-size:14px;font-weight:600;}
@@ -269,6 +273,18 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
       <button onclick="useMyGps()" style="width:100%;margin-top:8px;background:var(--bg);border:2px solid var(--or);border-radius:12px;padding:9px;font-size:13px;font-weight:800;cursor:pointer;color:var(--or);font-family:Nunito,sans-serif">GPS - Usar mi ubicacion actual</button>
       <p id="req-addr-display" style="font-size:12px;color:var(--soft);margin-top:6px;font-weight:600;text-align:center"></p>
     </div>
+    <div class="fg" style="margin-top:4px">
+      <label style="font-weight:800;font-size:14px">🐕 ¿Cómo es tu perro?</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px" id="dog-tags">
+        <button type="button" class="dog-tag" data-val="Paseo solo" onclick="toggleDogTag(this)">🚶 Paseo solo</button>
+        <button type="button" class="dog-tag" data-val="Paseo en grupo" onclick="toggleDogTag(this)">👥 Paseo en grupo</button>
+        <button type="button" class="dog-tag" data-val="Es sociable" onclick="toggleDogTag(this)">😊 Es sociable</button>
+        <button type="button" class="dog-tag" data-val="No es sociable" onclick="toggleDogTag(this)">😤 No es sociable</button>
+        <button type="button" class="dog-tag" data-val="Tiene ansiedad" onclick="toggleDogTag(this)">😰 Tiene ansiedad</button>
+        <button type="button" class="dog-tag" data-val="Tranquilo" onclick="toggleDogTag(this)">😌 Tranquilo</button>
+      </div>
+      <textarea id="req-dog-notes" placeholder="Algo más que el paseador deba saber... (opcional)" style="width:100%;margin-top:10px;padding:10px;border:2px solid #eee;border-radius:12px;font-family:Nunito,sans-serif;font-size:13px;resize:none;height:60px;outline:none" maxlength="200"></textarea>
+    </div>
     <button class="btn-save" onclick="sendRequest()">Enviar solicitud 🐾</button>
   </div>
 </div>
@@ -296,25 +312,37 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 </div>
 
 <div id="m-rating" class="modal hidden">
-  <div class="mbox" style="text-align:center">
+  <div class="mbox">
     <button class="mclose" onclick="closeModal('m-rating')">✕</button>
-    <h2>⭐ Calificar Paseador</h2>
-    <div id="rating-info" style="margin-bottom:18px"></div>
-    <p style="font-weight:700;color:var(--soft);font-size:14px;margin-bottom:12px">Como fue el paseo?</p>
-    <div id="star-picker" style="display:flex;justify-content:center;gap:10px;margin-bottom:10px">
-      <span class="star-btn" data-v="1" onclick="pickStar(1)">⭐</span>
-      <span class="star-btn" data-v="2" onclick="pickStar(2)">⭐</span>
-      <span class="star-btn" data-v="3" onclick="pickStar(3)">⭐</span>
-      <span class="star-btn" data-v="4" onclick="pickStar(4)">⭐</span>
-      <span class="star-btn" data-v="5" onclick="pickStar(5)">⭐</span>
+    <h2 style="text-align:center">⭐ Calificar Paseador</h2>
+    <div id="rating-info" style="margin-bottom:16px;text-align:center"></div>
+    <p style="font-weight:700;color:var(--soft);font-size:13px;margin-bottom:10px;text-align:center">¿Cómo fue el paseo?</p>
+    <div id="star-picker" style="display:flex;justify-content:center;gap:12px;margin-bottom:6px">
+      <span class="star-btn" data-v="1" onclick="pickStar(1)" style="font-size:32px;cursor:pointer">⭐</span>
+      <span class="star-btn" data-v="2" onclick="pickStar(2)" style="font-size:32px;cursor:pointer">⭐</span>
+      <span class="star-btn" data-v="3" onclick="pickStar(3)" style="font-size:32px;cursor:pointer">⭐</span>
+      <span class="star-btn" data-v="4" onclick="pickStar(4)" style="font-size:32px;cursor:pointer">⭐</span>
+      <span class="star-btn" data-v="5" onclick="pickStar(5)" style="font-size:32px;cursor:pointer">⭐</span>
     </div>
-    <div id="star-label" style="font-size:15px;font-weight:800;color:var(--or);min-height:22px;margin-bottom:14px"></div>
-    <div class="fg"><label>Comentario (opcional)</label><textarea id="rating-comment" placeholder="Ej: Muy puntual y cariñoso..."></textarea></div>
-    <button class="btn-save" id="btn-submit-rating" onclick="submitRating()">Enviar calificacion ⭐</button>
+    <div id="star-label" style="font-size:15px;font-weight:800;color:var(--or);min-height:22px;margin-bottom:14px;text-align:center"></div>
+    <p style="font-weight:800;font-size:13px;margin-bottom:8px">¿Qué destacás? <span style="font-weight:400;color:var(--soft)">(opcional)</span></p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px" id="rev-tags">
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">⏰ Llegó puntual</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">🐾 Muy cuidadoso</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">💬 Buena comunicación</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">👍 Lo recomiendo</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">❤️ Mi perro lo amó</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">📍 Ruta completa</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">😕 Llegó tarde</button>
+      <button type="button" class="rev-tag" onclick="toggleRevTag(this)">📵 Mala comunicación</button>
+    </div>
+    <div class="fg"><label>Comentario adicional <span style="font-weight:400;color:var(--soft)">(opcional)</span></label><textarea id="rating-comment" placeholder="Contanos más sobre el paseo..."></textarea></div>
+    <button class="btn-save" id="btn-submit-rating" onclick="submitRating()">Enviar calificación ⭐</button>
   </div>
 </div>
 
 <script type="text/javascript">
+// SQL needed in Supabase: alter table walk_requests add column if not exists dog_notes text;
 var SB_URL = 'https://vvszrrbxfmfwlrctjwsx.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2c3pycmJ4Zm1md2xyY3Rqd3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTE3NzksImV4cCI6MjA4ODIyNzc3OX0.zD6JwDZ9Z12IOSb56FRQ8wcyBGhmFi22ghNt6z44Dtk';
 var sb = supabase.createClient(SB_URL, SB_KEY);
@@ -745,10 +773,12 @@ function sendRequest(){
     d.setHours(d.getHours() + 3);
     scheduled = d.toISOString();
   } catch(e){ scheduled=new Date().toISOString(); }
+  var dogNotes = getSelectedDogTags();
   sb.from('walk_requests').insert({
     owner_id:CU.id, walker_id:reqWalker.id, dog_id:dogId,
     scheduled_at:scheduled,
-    owner_lat:reqLat||null, owner_lng:reqLng||null, owner_address:addrTxt||null
+    owner_lat:reqLat||null, owner_lng:reqLng||null, owner_address:addrTxt||null,
+    dog_notes:dogNotes||null
   }).then(function(res){
     if(btn){ btn.textContent='Enviar solicitud 🐾'; btn.disabled=false; }
     if(res.error){ alert('Error al enviar: '+res.error.message); return; }
@@ -828,6 +858,7 @@ function renderWalkerHome(m){
           html+='<div style="font-size:16px;font-weight:800;color:var(--or);margin-bottom:6px">🕐 '+fmtDate(r.scheduled_at)+'</div>';
           html+='<div style="font-size:13px;font-weight:700;color:var(--tx)">📍 '+displayAddr+'</div>';
           if(mapsUrl) html+='<a href="'+mapsUrl+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:800;text-decoration:none;display:inline-block;margin-top:6px;background:rgba(59,130,246,.1);padding:4px 10px;border-radius:8px">🗺️ Abrir Google Maps</a>';
+          if(r.dog_notes) html+='<div style="margin-top:8px;padding:8px 10px;background:rgba(255,210,63,.2);border-radius:10px;font-size:12px;font-weight:700;color:var(--tx)">🐕 '+r.dog_notes+'</div>';
           html+='</div>';
           // Botones grandes apilados verticalmente en mobile
           html+='<button style="width:100%;padding:14px;background:linear-gradient(135deg,#4CAF7D,#3a9165);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;font-family:Nunito,sans-serif;margin-bottom:8px;box-shadow:0 4px 12px rgba(76,175,125,.4)" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar paseo</button>';
@@ -870,6 +901,20 @@ function renderWalkerHome(m){
   });
 }
 
+function toggleDogTag(btn){
+  btn.classList.toggle('sel');
+}
+function getSelectedDogTags(){
+  var tags=[];
+  document.querySelectorAll('#dog-tags .dog-tag.sel').forEach(function(b){ tags.push(b.dataset.val); });
+  var notes = (document.getElementById('req-dog-notes')||{}).value || '';
+  var result = tags.join(', ');
+  if(notes.trim()) result += (result ? ' — ' : '') + notes.trim();
+  return result;
+}
+function toggleRevTag(btn){
+  btn.classList.toggle('sel');
+}
 function respondReq(el){
   var reqId, status, dogId;
   if(typeof el === 'object' && el.dataset){
@@ -899,12 +944,16 @@ function respondReq(el){
 
 function startWalk(wId){
   var startedAt = new Date().toISOString();
-  t0 = Date.now(); // Setear t0 inmediatamente para el timer
+  t0 = Date.now();
   sb.from('walks').update({status:'active', started_at:startedAt}).eq('id',wId).then(function(res){
     if(res.error){ alert('Error al iniciar: '+res.error.message); t0=null; return; }
     walkId=wId;
     tracking=true;
     go('home');
+    // Arrancar timer y GPS directo, sin esperar que renderWalkerHome detecte isActive
+    setTimeout(function(){
+      if(navigator.geolocation) resumeWalk();
+    }, 800);
   });
 }
 
@@ -1431,7 +1480,11 @@ function pickStar(v){
 
 function submitRating(){
   if(!ratingData.score){ alert('Selecciona una calificacion'); return; }
-  var comment=gid('rating-comment').value.trim();
+  // Combinar tags seleccionados con comentario
+  var selTags=[];
+  document.querySelectorAll('#rev-tags .rev-tag.sel').forEach(function(b){ selTags.push(b.textContent.trim()); });
+  var commentRaw = gid('rating-comment').value.trim();
+  var comment = selTags.length ? selTags.join(' · ') + (commentRaw ? ' — ' + commentRaw : '') : commentRaw;
   var btn=gid('btn-submit-rating');
   btn.textContent='Enviando...'; btn.disabled=true;
   sb.from('ratings').insert({walk_request_id:ratingData.reqId,owner_id:CU.id,walker_id:ratingData.walkerId,score:ratingData.score,comment:comment||null}).then(function(res){
