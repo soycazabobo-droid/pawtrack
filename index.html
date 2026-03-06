@@ -21,7 +21,7 @@
   --hh:64px;--nh:70px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;overflow-y:auto;}
 .hidden{display:none!important;}
 #splash{position:fixed;inset:0;background:linear-gradient(135deg,#FF6B35,#FFD23F);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s;}
 #splash.out{opacity:0;pointer-events:none;}
@@ -67,7 +67,7 @@ header{position:sticky;top:0;z-index:100;height:var(--hh);background:#fff;displa
 .rbadge{background:linear-gradient(135deg,var(--or),var(--yw));color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;}
 .ibtn{background:var(--bg);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;}
 main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:column;gap:14px;}
-.hero-card{background:linear-gradient(135deg,#FF6B35,#FFD23F);border-radius:var(--r);padding:18px;display:flex;align-items:center;gap:14px;color:#fff;box-shadow:0 6px 24px rgba(255,107,53,.35);position:relative;overflow:hidden;}
+.hero-card{background:linear-gradient(135deg,#FF6B35,#FFD23F);border-radius:var(--r);padding:12px 18px;display:flex;align-items:center;gap:14px;color:#fff;box-shadow:0 6px 24px rgba(255,107,53,.35);position:relative;overflow:hidden;}
 .hero-card::after{content:'🐾';position:absolute;right:-8px;bottom:-14px;font-size:76px;opacity:.15;}
 .hc-av{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;overflow:hidden;}
 .hc-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
@@ -78,7 +78,7 @@ main{flex:1;padding:14px 14px calc(var(--nh)+14px);display:flex;flex-direction:c
 .dot{width:8px;height:8px;border-radius:50%;}
 .dot.idle{background:#fff;}.dot.on{background:#7fff7f;animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.map-wrap{border-radius:var(--r);overflow:hidden;height:300px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.2);border:2px solid rgba(255,107,53,.15);}
+.map-wrap{border-radius:var(--r);overflow:hidden;height:160px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.2);border:2px solid rgba(255,107,53,.15);}
 #map{height:100%;width:100%;}
 .map-hud{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(15,15,20,.85);backdrop-filter:blur(10px);border-radius:40px;padding:9px 22px;display:flex;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);}
 .hud-s{display:flex;align-items:center;gap:6px;font-weight:800;font-size:15px;color:#fff;}
@@ -566,7 +566,7 @@ function renderOwnerHome(m){
       html+='<p style="color:var(--soft);font-size:13px;margin-bottom:14px">Necesitas al menos un perro para solicitar paseadores</p>';
       html+='<button class="btn-auth" style="width:auto;padding:12px 28px" onclick="openDogModal()">🐕 Agregar mi perro</button></div>';
     }
-    html+='<div class="map-wrap"><div id="map"></div></div>';
+    html+='<div class="map-wrap" style="touch-action:none"><div id="map"></div></div>';
     html+='<div class="panel"><h3>📡 Paseos activos ahora</h3><div id="active-walks"></div></div>';
     html+='<div class="panel"><h3>🐶 Mis perros</h3><div id="dogs-list"></div>';
     html+='<button class="btn-add" onclick="openDogModal()">+ Agregar perro</button></div>';
@@ -785,7 +785,15 @@ function renderWalkerHome(m){
       html+='<div class="hud-s">📍 <span class="hud-val" id="s-dist">0.00</span> km</div>';
       html+='<div class="hud-s" style="border-left:1px solid rgba(255,255,255,.15);padding-left:24px">⏱️ <span class="hud-val" id="s-time">00:00</span></div>';
       html+='</div></div>';
-      html+='<div class="ctrls"><button class="btn-m stop-btn" onclick="stopWalk(\''+activeWalk.id+'\')">🏁 Finalizar paseo</button><button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button></div>';
+      html+='<div class="ctrls">';
+      html+='<button class="btn-m stop-btn" id="btn-stop-walk">🏁 Finalizar paseo</button>';
+      html+='<button class="btn-m share-btn" onclick="showShare()">📡 Compartir</button>';
+      html+='</div>';
+      // Set walkId for stop button after render
+      setTimeout(function(){ 
+        var btn=document.getElementById('btn-stop-walk');
+        if(btn){ btn.onclick=function(){ stopWalk(activeWalk.id); }; }
+      },100);
     } else if(isReserved){
       var dog = activeWalk.dogs;
       html+='<div class="panel" style="border:2px solid var(--or)">';
@@ -797,10 +805,10 @@ function renderWalkerHome(m){
       html+='<div id="req-info-box" style="background:rgba(255,107,53,.08);border-radius:10px;padding:12px;margin-top:10px"><span style="color:var(--soft);font-size:13px">Cargando info...</span></div>';
       html+='<button class="btn-save" style="width:100%;margin-top:14px;font-size:16px" onclick="startWalk(\''+activeWalk.id+'\')">🚶 Empezar paseo</button>';
       html+='</div>';
-      html+='<div class="map-wrap"><div id="map"></div></div>';
+      html+='<div class="map-wrap" style="touch-action:none"><div id="map"></div></div>';
     } else {
       // SIN PASEO — mapa y solicitudes pendientes
-      html+='<div class="map-wrap"><div id="map"></div></div>';
+      html+='<div class="map-wrap" style="touch-action:none"><div id="map"></div></div>';
       html+='<div class="panel"><h3>📬 Solicitudes pendientes</h3><div id="pending-req">';
       if(reqs.length){
         reqs.forEach(function(r){
@@ -890,9 +898,10 @@ function respondReq(el){
 }
 
 function startWalk(wId){
-  // Cambiar status a active y setear started_at
-  sb.from('walks').update({status:'active', started_at:new Date().toISOString()}).eq('id',wId).then(function(res){
-    if(res.error){ alert('Error al iniciar: '+res.error.message); return; }
+  var startedAt = new Date().toISOString();
+  t0 = Date.now(); // Setear t0 inmediatamente para el timer
+  sb.from('walks').update({status:'active', started_at:startedAt}).eq('id',wId).then(function(res){
+    if(res.error){ alert('Error al iniciar: '+res.error.message); t0=null; return; }
     walkId=wId;
     tracking=true;
     go('home');
@@ -1035,7 +1044,7 @@ function watchWalk(wId){
     // Init map sin GPS del owner para no mover el centro
     if(map){ map.remove(); map=null; uMarker=null; routeLine=null; }
     var el=gid('map'); if(!el) return;
-    map=L.map('map',{zoomControl:false}).setView([-34.603,-58.381],15);
+    map=L.map('map',{zoomControl:false,scrollWheelZoom:false,tap:false,dragging:true}).setView([-34.603,-58.381],15);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
     L.control.zoom({position:'topright'}).addTo(map);
     routeLine=L.polyline([],{color:'#FF6B35',weight:6,opacity:1}).addTo(map);
@@ -1086,7 +1095,7 @@ function initMap(lat, lng){
   if(map){ map.remove(); map=null; uMarker=null; routeLine=null; myLocMarker=null; }
   var el=gid('map');
   if(!el) return;
-  map=L.map('map',{zoomControl:false}).setView([lat,lng],15);
+  map=L.map('map',{zoomControl:false,scrollWheelZoom:false,tap:false}).setView([lat,lng],15);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   routeLine=L.polyline([],{color:'#FF6B35',weight:5,opacity:1}).addTo(map);
@@ -1159,21 +1168,28 @@ function resumeWalk(){
   if(tmrId){ clearInterval(tmrId); tmrId=null; }
   if(gpsId!==null){ navigator.geolocation.clearWatch(gpsId); gpsId=null; }
   pts=[]; dist=0;
-  // Usar started_at de la DB para el timer real
-  sb.from('walks').select('started_at').eq('id',walkId).maybeSingle().then(function(res){
-    t0 = res.data && res.data.started_at ? new Date(res.data.started_at).getTime() : Date.now();
-    // Arrancar timer - intentar varias veces hasta que el elemento exista
+  // Usar t0 si ya esta seteado (startWalk lo setea inmediatamente)
+  // Si no, buscar started_at de la DB
+  function kickTimer(startTime){
+    t0 = startTime;
     function startTimer(){
       var e=gid('s-time');
-      if(e){ 
+      if(e){
         e.textContent=fmtT(Date.now()-t0);
         tmrId=setInterval(function(){ var el=gid('s-time'); if(el) el.textContent=fmtT(Date.now()-t0); },1000);
       } else {
-        setTimeout(startTimer, 300);
+        setTimeout(startTimer, 200);
       }
     }
     startTimer();
-  });
+  }
+  if(t0){
+    kickTimer(t0);
+  } else {
+    sb.from('walks').select('started_at').eq('id',walkId).maybeSingle().then(function(res){
+      kickTimer(res.data && res.data.started_at ? new Date(res.data.started_at).getTime() : Date.now());
+    });
+  }
   // Arrancar GPS - esperar que el mapa este listo
   function startGPS(){
     if(!map){ setTimeout(startGPS, 300); return; }
