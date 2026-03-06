@@ -760,20 +760,23 @@ function renderWalkerHome(m){
       html+='<div class="panel"><h3>📬 Solicitudes pendientes</h3><div id="pending-req">';
       if(reqs.length){
         reqs.forEach(function(r){
-          html+='<div class="li" style="flex-direction:column;align-items:stretch;gap:10px;padding:14px">';
-          html+='<div style="display:flex;align-items:center;gap:10px">';
-          html+='<div class="li-av">'+(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'">'  :'👤')+'</div>';
-          html+='<div class="li-info"><strong>'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueno')+'</strong>';
-          html+='<span>'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</span></div></div>';
-          html+='<div style="background:rgba(255,107,53,.08);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px">';
-          html+='<span style="font-size:13px;font-weight:800">🕐 '+fmtDate(r.scheduled_at)+'</span>';
           var addr = r.owner_address ? r.owner_address.replace('Direccion:','').replace('Dirección:','').trim() : '';
-          if(addr) html+='<span style="font-size:12px;color:var(--soft)">📍 '+addr+'</span>';
-          else if(r.owner_lat && r.owner_lng) html+='<span style="font-size:12px;color:var(--soft)">📍 '+r.owner_lat.toFixed(4)+', '+r.owner_lng.toFixed(4)+'</span>';
+          var coordText = (r.owner_lat && r.owner_lng) ? r.owner_lat.toFixed(4)+', '+r.owner_lng.toFixed(4) : '';
+          var mapsUrl = (r.owner_lat && r.owner_lng) ? 'https://www.google.com/maps?q='+r.owner_lat+','+r.owner_lng : '';
+          var displayAddr = addr || coordText || 'Sin dirección';
+          html+='<div style="background:#fff;border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid #FFE8D6">';
+          html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+          html+='<div class="li-av">'+(r.profiles&&r.profiles.photo_url?'<img src="'+r.profiles.photo_url+'">':'👤')+'</div>';
+          html+='<div style="flex:1"><strong style="font-size:14px">'+(r.profiles&&r.profiles.full_name?r.profiles.full_name:'Dueño')+'</strong>';
+          html+='<div style="font-size:12px;color:var(--soft)">'+(r.dogs&&r.dogs.avatar?r.dogs.avatar:'🐕')+' '+(r.dogs&&r.dogs.name?r.dogs.name:'Perro')+'</div></div></div>';
+          html+='<div style="background:rgba(255,107,53,.08);border-radius:12px;padding:10px;margin-bottom:10px">';
+          html+='<div style="font-size:14px;font-weight:800;color:var(--or);margin-bottom:4px">🕐 '+fmtDate(r.scheduled_at)+'</div>';
+          html+='<div style="font-size:13px;font-weight:700">📍 '+displayAddr+'</div>';
+          if(mapsUrl) html+='<a href="'+mapsUrl+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:800;text-decoration:none;display:block;margin-top:4px">🗺️ Ver en Google Maps</a>';
           html+='</div>';
           html+='<div style="display:flex;gap:8px">';
-          html+='<button class="btn-accept" style="flex:1" onclick="respondReq(\''+r.id+'\',\'accepted\',\''+r.dog_id+'\')">✅ Aceptar</button>';
-          html+='<button class="btn-reject" style="flex:1" onclick="respondReq(\''+r.id+'\',\'rejected\',\''+r.dog_id+'\')">❌ Rechazar</button>';
+          html+='<button class="btn-accept" style="flex:1;padding:11px" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="accepted">✅ Aceptar</button>';
+          html+='<button class="btn-reject" style="flex:1;padding:11px" onclick="respondReq(this)" data-id="'+r.id+'" data-dog="'+r.dog_id+'" data-status="rejected">❌ Rechazar</button>';
           html+='</div></div>';
         });
       } else {
@@ -812,7 +815,13 @@ function renderWalkerHome(m){
   });
 }
 
-function respondReq(reqId, status, dogId){
+function respondReq(el){
+  var reqId, status, dogId;
+  if(typeof el === 'object' && el.dataset){
+    reqId = el.dataset.id; status = el.dataset.status; dogId = el.dataset.dog;
+  } else {
+    reqId = arguments[0]; status = arguments[1]; dogId = arguments[2];
+  }
   sb.from('walk_requests').update({status:status}).eq('id',reqId).then(function(){
     if(status==='accepted'){
       // Notif al paseador confirmando
